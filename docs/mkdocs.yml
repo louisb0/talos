@@ -1,0 +1,15 @@
+site_name: talos
+
+theme:
+    feaures:
+      - tabs
+    name: material
+    icon:
+      logo: material/cloud
+    palette:
+      scheme: slate
+    font:
+      text: Ubuntu
+      code: Ubuntu Mono
+    static_templates:
+      - 404.html
