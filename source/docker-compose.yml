@@ -5,7 +5,7 @@ services:
     networks:
       - talos-network
     ports:
-      - 5431:5431
+      - ${DB_PORT}:${DB_PORT}
     volumes: 
       - ./volumes/database:/var/lib/postgresql/data
     environment:
