@@ -4,7 +4,7 @@ import pika
 from pika.adapters.blocking_connection import BlockingChannel
 
 from talos.config.settings import Settings
-from talos.exceptions.queues_exceptions import RabbitMQNotInitialisedException
+from talos.exceptions.queuing import RabbitMQNotInitialisedException
 from talos.logger import logger
 
 
