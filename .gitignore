@@ -1,1 +1,5 @@
 docs/site
+source/docker-images/**/shared
+source/volumes/
+.env
+**/__pycache__
