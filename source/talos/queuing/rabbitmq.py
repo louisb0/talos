@@ -4,7 +4,7 @@ import pika
 from pika.adapters.blocking_connection import BlockingChannel
 
 from talos.config.settings import Settings
-from talos.exceptions.queuing import RabbitMQNotInitialisedException
+from talos.exceptions.queuing import *
 from talos.logger import logger
 
 
@@ -15,19 +15,52 @@ class RabbitMQ:
     }
 
     def __init__(self, queues: Tuple[str]):
+        """
+        Initialize the RabbitMQ object, should be used with a context manager.
+        
+        Args:
+            queues (Tuple[str]): A tuple containing the names of the queues.
+        """
         self.connection: pika.BlockingConnection = None
         self.channel: BlockingChannel = None
-
         self.queues = queues
 
     def __enter__(self):
+        """
+        Context manager enter function. Connects to the RabbitMQ server.
+
+        Returns:
+            self
+
+        Raises:
+            RabbitMQNonFatalException: For non-fatal internal AMPQ exceptions.
+            RabbitMQFatalException: For fatal internal AMPQ exceptions.
+        """
         self.connect()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        """
+        Context manager exit function. Disconnects from the RabbitMQ server.
+
+        Args:
+            exc_type, exc_val, exc_tb: Exception type, value and traceback respectively.
+
+        Raises:
+            RabbitMQFatalException: If any exception occurs during disconnection.
+        """
         self.disconnect()
 
-    def connect(self):
+    @log_reraise_non_fatal_exception
+    @log_reraise_fatal_exception
+    def connect(self) -> None:
+        """
+        Connects to the RabbitMQ server and establishes a channel.
+
+        Raises:
+            RabbitMQNonFatalException: For non-fatal internal AMPQ exceptions.
+            RabbitMQFatalException: For fatal internal AMPQ exceptions.
+        """
         self.connection = pika.BlockingConnection(
             pika.ConnectionParameters(**self.CONFIG)
         )
@@ -37,15 +70,38 @@ class RabbitMQ:
         for queue_name in self.queues:
             self._declare_queue(queue_name)
 
-    def disconnect(self):
+    @log_reraise_fatal_exception
+    def disconnect(self) -> None:
+        """
+        Disconnects from the RabbitMQ server.
+
+        Raises:
+            RabbitMQFatalException: If any exception occurs during disconnection.
+        """
         if self.connection and self.connection.is_open:
             self.connection.close()
 
-    def publish_message(self, queue_name: str, message: str):
+    @log_reraise_bad_message_exception
+    @log_reraise_non_fatal_exception
+    @log_reraise_fatal_exception
+    def publish_message(self, queue_name: str, message: str) -> None:
+        """
+        Publishes a message to a specific queue.
+
+        Args:
+            queue_name (str): The name of the queue.
+            message (str): The message to be published.
+
+        Raises:
+            BadMessageException: If any exceptions occur during message publishing.
+            RabbitMQNonFatalException: For non-fatal internal AMPQ exceptions.
+            RabbitMQFatalException: For fatal internal AMPQ exceptions.
+        """
         self._validate_connection()
+        self._validate_queue(queue_name)
 
         self.channel.basic_publish(
-            exchange='talos-exchange',
+            exchange=Settings.RABBITMQ_EXCHANGE_NAME,
             routing_key=queue_name,
             body=message,
             properties=pika.BasicProperties(
@@ -53,18 +109,47 @@ class RabbitMQ:
             )
         )
 
-    def publish_messages(self, queue_name: str, messages: List[Dict]):
-        self._validate_connection()
+    # should propogate up, no decorator
+    def publish_messages(self, queue_name: str, messages: List[Dict]) -> None:
+        """
+        Publishes a list of messages to a specific queue. 
 
+        Args:
+            queue_name (str): The name of the queue.
+            messages (List[Dict]): The list of messages to be published.
+
+        Note: This function is not decorated, exceptions should propagate up.
+        """
         for message in messages:
             self.publish_message(queue_name, message)
 
-    def continually_consume_messages(self, queue_name: str, callback_function: Callable):
+    @log_reraise_bad_message_exception
+    @log_reraise_non_fatal_exception
+    @log_reraise_fatal_exception
+    def continually_consume_messages(self, queue_name: str, callback_function: Callable) -> None:
+        """
+        Consumes messages from a specific queue indefinitely. Each message is passed to a callback function.
+        Messages are (n)ack'd within the function.
+
+        Args:
+            queue_name (str): The name of the queue to consume from.
+            callback_function (Callable): The function to be called for each message.
+
+        Raises:
+            BadMessageException: If any message based exceptions occur during message consumption.
+            RabbitMQNonFatalException: For non-fatal internal AMPQ exceptions.
+            RabbitMQFatalException: For fatal internal AMPQ exceptions.
+        """
         self._validate_connection()
+        self._validate_queue(queue_name)
 
         def callback(ch, method, properties, body):
-            callback_function(body) # ERROR HANDLING!!!!!!!!!!!!!!!!!!!!!!!!!!!!! NACK!!!!!!!!!!!!!
-            ch.basic_ack(delivery_tag=method.delivery_tag)
+            try:
+                callback_function(body)
+                ch.basic_ack(delivery_tag=method.delivery_tag)
+            except Exception as e:
+                ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
+                raise e
 
         self.channel.basic_qos(prefetch_count=1)
         self.channel.basic_consume(
@@ -74,8 +159,24 @@ class RabbitMQ:
         )
         self.channel.start_consuming()
 
-    def consume_one_message(self, queue_name: str):
+    @log_reraise_non_fatal_exception
+    @log_reraise_fatal_exception
+    def consume_one_message(self, queue_name: str) -> str:
+        """
+        Consumes one message from a specific queue.
+
+        Args:
+            queue_name (str): The name of the queue to consume from.
+
+        Returns:
+            str: The consumed message.
+
+        Raises:
+            RabbitMQNonFatalException: For non-fatal internal AMPQ exceptions.
+            RabbitMQFatalException: For fatal internal AMPQ exceptions.
+        """
         self._validate_connection()
+        self._validate_queue(queue_name)
 
         method_frame, header_frame, body = self.channel.basic_get(
             queue=queue_name
@@ -85,7 +186,19 @@ class RabbitMQ:
             self.channel.basic_ack(method_frame.delivery_tag)
             return body
 
-    def consume_n_messages(self, queue_name: str, n: int):
+    def consume_n_messages(self, queue_name: str, n: int) -> List[str]:
+        """
+        Consumes n messages from a specific queue.
+
+        Args:
+            queue_name (str): The name of the queue to consume from.
+            n (int): The number of messages to consume.
+
+        Returns:
+            List[str]: A list of consumed messages.
+
+        Note: This function is not decorated, exceptions should propagate up.
+        """
         self._validate_connection()
         messages = []
 
@@ -94,7 +207,16 @@ class RabbitMQ:
 
         return messages
 
-    def _declare_exchange(self):
+    @log_reraise_non_fatal_exception
+    @log_reraise_fatal_exception
+    def _declare_exchange(self) -> None:
+        """
+        Declares an exchange in the RabbitMQ server.
+
+        Raises:
+            RabbitMQNonFatalException: For non-fatal internal AMPQ exceptions.
+            RabbitMQFatalException: For fatal internal AMPQ exceptions.
+        """
         self._validate_connection()
 
         self.channel.exchange_declare(
@@ -103,7 +225,19 @@ class RabbitMQ:
             durable=True,
         )
 
-    def _declare_queue(self, queue_name):
+    @log_reraise_non_fatal_exception
+    @log_reraise_fatal_exception
+    def _declare_queue(self, queue_name: str) -> None:
+        """
+        Declares a queue in the RabbitMQ server.
+
+        Args:
+            queue_name (str): The name of the queue to declare.
+
+        Raises:
+            RabbitMQNonFatalException: For non-fatal internal AMPQ exceptions.
+            RabbitMQFatalException: For fatal internal AMPQ exceptions.
+        """
         self.channel.queue_declare(queue=queue_name, durable=True)
         self.channel.queue_bind(
             exchange=Settings.RABBITMQ_EXCHANGE_NAME,
@@ -112,26 +246,24 @@ class RabbitMQ:
         )
 
     def _validate_connection(self):
+        """
+        Checks if the connection and channel are established, raises an exception if not.
+
+        Raises:
+            NotInitialisedException: If the connection or channel is not established.
+        """
         if not self.channel or not self.connection:
-            raise RabbitMQNotInitialisedException()
+            raise NotInitialisedException()
 
+    def _validate_queue(self, queue_name):
+        """
+        Checks if a queue exists, raises an exception if not.
 
-"""
-queue_names = ("one", "two")
-single_message = json.dumps({"key": "value"})
-batch_messages = [json.dumps({"key": f"value{i}"}) for i in range(5)]
+        Args:
+            queue_name (str): The name of the queue to check.
 
-# Initialize RabbitMQ with queues
-with RabbitMQ(queues=queue_names) as q:
-    logger.info("publsihing to one")
-    q.publish_message("one", single_message)
-    logger.info("publsihing to two")
-    q.publish_messages("two", batch_messages)
-
-    logger.info(f"first {q.consume_one_message('one')}")
-    logger.info(f"second {q.consume_n_messages('two', 3)}")
-
-    def callback(message):
-        logger.info(f"continual {message}")
-    q.continually_consume_messages("two", callback)
-"""
+        Raises:
+            UnknownQueueException: If a queue does not exist.
+        """
+        if queue_name not in self.queues:
+            raise UnknownQueueException()

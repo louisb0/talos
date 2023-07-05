@@ -6,7 +6,7 @@ from tenacity import retry, stop_after_attempt, wait_fixed, retry_if_exception_t
 from talos.config import Settings
 from talos.queuing import RabbitMQ
 from talos.exceptions.base import FatalException, NonFatalException
-from talos.exceptions.messages import BadMessageException
+from talos.exceptions.queuing import BadMessageException
 from talos.logger import logger
 
 
