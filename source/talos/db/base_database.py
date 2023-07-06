@@ -7,7 +7,7 @@ from talos.exceptions.db import *
 from talos.logger import logger
 
 
-class Database:
+class BaseDatabase:
     # can assume settings valid per validate() in __init__ of components
     CONFIG = {
         "database": Settings.DB_USER,
@@ -23,19 +23,6 @@ class Database:
         """
         self.connection: psycopg2.connection = None
         self.cursor: psycopg2.cursor = None
-
-    def __enter__(self):
-        """
-        Connects to the database when the Database object is used in a `with` statement.
-        """
-        self.connect()
-        return self
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        """
-        Disconnects from the database when exiting the `with` statement block.
-        """
-        self.disconnect()
 
     @log_reraise_fatal_exception
     @log_reraise_non_fatal_exception
@@ -65,28 +52,6 @@ class Database:
 
         if self.connection and not self.connection.closed:
             self.connection.close()
-
-    @log_reraise_fatal_exception
-    @log_reraise_non_fatal_exception
-    def execute(self, query: str, params: Tuple = None, auto_commit: bool = True) -> None:
-        """
-        Executes a query on the PostgreSQL database.
-
-        Args:
-            query (str): The SQL query to execute.
-            params (Tuple, optional): Parameters to bind to the query.
-            auto_commit (bool, optional): Whether to commit the transaction automatically. Default is True.
-
-        Raises:
-            DatabaseNonFatalException: For non-fatal internal psycopg2 exceptions.
-            DatabaseFatalException: For fatal internal psycopg2 exceptions.
-        """
-        self._validate_connection()
-
-        self.cursor.execute(query, params)
-
-        if auto_commit:
-            self.connection.commit()
 
     @log_reraise_fatal_exception
     @log_reraise_non_fatal_exception

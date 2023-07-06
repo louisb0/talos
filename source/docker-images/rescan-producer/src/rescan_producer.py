@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 from psycopg2.extensions import AsIs
 
 from talos.config import Settings
-from talos.db import Database
+from talos.db import ContextDatabase
 from talos.queuing import RabbitMQ
 from talos.logger import logger
 from talos.components import ProducerComponent
@@ -15,7 +15,7 @@ from talos.components import ProducerComponent
 class RescanUtility():
     @staticmethod
     def fetch_subscriptions():
-        with Database() as db:
+        with ContextDatabase() as db:
             db.execute(
                 query="SELECT * FROM %s",
                 params=(AsIs(Settings.SUBSCRIPTIONS_TABLE),),
@@ -42,7 +42,7 @@ class RescanUtility():
 
     @staticmethod
     def mark_rescan_queued(subreddit):
-        with Database() as db:
+        with ContextDatabase() as db:
             db.execute(
                 query="UPDATE %s SET is_currently_queued=true WHERE subreddit=%s",
                 params=(AsIs(Settings.SUBSCRIPTIONS_TABLE), subreddit)
