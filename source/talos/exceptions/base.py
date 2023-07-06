@@ -10,28 +10,17 @@ class NonFatalException(Exception):
     pass
 
 
-def log_and_reraise_exception(to_catch: Tuple[Type[BaseException]], should_raise: Exception):
+def log_and_reraise_exception(to_catch: Tuple[Type[BaseException]], should_raise: Exception, to_exclude: Tuple[Type[BaseException]] = None):
     """
-    Decorator for logging and reraising exceptions. It catches specific exceptions and raises a new one instead.
+    Decorator for logging and reraising exceptions. It catches specific exceptions and raises a custom one instead.
 
     Args:
         to_catch (Tuple[Type[BaseException]]): A tuple of exception classes to catch.
         should_raise (Exception): The type of exception to raise in place of the caught exceptions.
+        to_exclude (Tuple[Type[BaseException]]): A tuple of exceptions to exclude reraising. Prevents higher-decorators reraising with wrong type.
 
     Returns:
         Callable: The decorated function.
-
-    Example Usage:
-        @handle_exceptions((TypeError, ValueError), CustomException)
-        def might_fail(x):
-            if not isinstance(x, int):
-                raise TypeError("Only integers are allowed")
-            if x < 0:
-                raise ValueError("Only non-negative integers are allowed")
-            return x
-
-    Note:
-        The function decorated with @handle_exceptions should handle `should_raise` exception.
     """
 
     def decorator(func: Callable) -> Callable:
@@ -39,6 +28,9 @@ def log_and_reraise_exception(to_catch: Tuple[Type[BaseException]], should_raise
             try:
                 return func(*args, **kwargs)
             except to_catch as ex:
+                if to_exclude and isinstance(ex, to_exclude):
+                    raise
+
                 logger.exception(
                     f"An error occurred in {func.__name__}()."
                 )

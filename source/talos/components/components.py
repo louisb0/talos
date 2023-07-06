@@ -25,6 +25,7 @@ class BaseComponent(ABC):
         @retry(stop=stop_after_attempt(self.retry_attempts),
                wait=wait_fixed(self.time_between_attempts),
                retry=retry_if_exception_type(NonFatalException),
+               before_sleep=lambda retry_state: logger.info(f"Retrying... {retry_state}"),
                reraise=True)
         def _handle_one_pass_with_retry(*args, **kwargs):
             self._handle_one_pass(*args, **kwargs)

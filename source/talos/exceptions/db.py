@@ -28,5 +28,6 @@ log_reraise_non_fatal_exception = log_and_reraise_exception(
 
 log_reraise_fatal_exception = log_and_reraise_exception(
     to_catch=(Exception, ),
-    should_raise=DatabaseFatalException
+    should_raise=DatabaseFatalException,
+    to_exclude=(DatabaseNonFatalException,)
 )

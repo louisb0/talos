@@ -51,8 +51,8 @@ class RabbitMQ:
         """
         self.disconnect()
 
-    @log_reraise_non_fatal_exception
     @log_reraise_fatal_exception
+    @log_reraise_non_fatal_exception
     def connect(self) -> None:
         """
         Connects to the RabbitMQ server and establishes a channel.
@@ -81,9 +81,9 @@ class RabbitMQ:
         if self.connection and self.connection.is_open:
             self.connection.close()
 
+    @log_reraise_fatal_exception
     @log_reraise_bad_message_exception
     @log_reraise_non_fatal_exception
-    @log_reraise_fatal_exception
     def publish_message(self, queue_name: str, message: str) -> None:
         """
         Publishes a message to a specific queue.
@@ -123,9 +123,9 @@ class RabbitMQ:
         for message in messages:
             self.publish_message(queue_name, message)
 
+    @log_reraise_fatal_exception
     @log_reraise_bad_message_exception
     @log_reraise_non_fatal_exception
-    @log_reraise_fatal_exception
     def continually_consume_messages(self, queue_name: str, callback_function: Callable) -> None:
         """
         Consumes messages from a specific queue indefinitely. Each message is passed to a callback function.
@@ -159,8 +159,8 @@ class RabbitMQ:
         )
         self.channel.start_consuming()
 
-    @log_reraise_non_fatal_exception
     @log_reraise_fatal_exception
+    @log_reraise_non_fatal_exception
     def consume_one_message(self, queue_name: str) -> str:
         """
         Consumes one message from a specific queue.
@@ -207,8 +207,8 @@ class RabbitMQ:
 
         return messages
 
-    @log_reraise_non_fatal_exception
     @log_reraise_fatal_exception
+    @log_reraise_non_fatal_exception
     def _declare_exchange(self) -> None:
         """
         Declares an exchange in the RabbitMQ server.
@@ -225,8 +225,8 @@ class RabbitMQ:
             durable=True,
         )
 
-    @log_reraise_non_fatal_exception
     @log_reraise_fatal_exception
+    @log_reraise_non_fatal_exception
     def _declare_queue(self, queue_name: str) -> None:
         """
         Declares a queue in the RabbitMQ server.
