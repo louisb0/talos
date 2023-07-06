@@ -18,87 +18,117 @@ class Database:
     }
 
     def __init__(self):
+        """
+        Initializes the Database object.
+        """
         self.connection: psycopg2.connection = None
         self.cursor: psycopg2.cursor = None
 
     def __enter__(self):
+        """
+        Connects to the database when the Database object is used in a `with` statement.
+        """
         self.connect()
         return self
 
     def __exit__(self, exc_type, exc_val, exc_tb):
+        """
+        Disconnects from the database when exiting the `with` statement block.
+        """
         self.disconnect()
 
+    @log_reraise_fatal_exception
+    @log_reraise_non_fatal_exception
     def connect(self) -> None:
-        try:
-            self.connection = psycopg2.connect(**self.CONFIG)
-            self.cursor = self.connection.cursor()
-        except Exception as e:
-            logger.exception(
-                "An error occured connecting to the database. Potentially resolvable by retry."
-            )
-            raise DatabaseNonFatalException() from e
+        """
+        Establishes a connection to the PostgreSQL database and creates a cursor.
 
+        Raises:
+            DatabaseNonFatalException: For non-fatal internal psycopg2 exceptions.
+            DatabaseFatalException: For fatal internal psycopg2 exceptions.
+        """
+        self.connection = psycopg2.connect(**self.CONFIG)
+        self.cursor = self.connection.cursor()
+
+    @log_reraise_fatal_exception
+    @log_reraise_non_fatal_exception
     def disconnect(self) -> None:
-        try:
-            if self.cursor and not self.cursor.closed:
-                self.cursor.close()
+        """
+        Closes the cursor and the connection to the PostgreSQL database.
 
-            if self.connection and not self.connection.closed:
-                self.connection.close()
-        except Exception as e:
-            logger.exception(
-                "An error occured closing connections to the database. Potentially resolvable by retry."
-            )
-            raise DatabaseNonFatalException() from e
+        Raises:
+            DatabaseNonFatalException: For non-fatal internal psycopg2 exceptions.
+            DatabaseFatalException: For fatal internal psycopg2 exceptions.
+        """
+        if self.cursor and not self.cursor.closed:
+            self.cursor.close()
 
+        if self.connection and not self.connection.closed:
+            self.connection.close()
+
+    @log_reraise_fatal_exception
+    @log_reraise_non_fatal_exception
     def execute(self, query: str, params: Tuple = None, auto_commit: bool = True) -> None:
+        """
+        Executes a query on the PostgreSQL database.
+
+        Args:
+            query (str): The SQL query to execute.
+            params (Tuple, optional): Parameters to bind to the query.
+            auto_commit (bool, optional): Whether to commit the transaction automatically. Default is True.
+
+        Raises:
+            DatabaseNonFatalException: For non-fatal internal psycopg2 exceptions.
+            DatabaseFatalException: For fatal internal psycopg2 exceptions.
+        """
         self._validate_connection()
 
-        try:
-            self.cursor.execute(query, params)
+        self.cursor.execute(query, params)
 
-            if auto_commit:
-                self.connection.commit()
-        except (psycopg2.OperationalError, psycopg2.InternalError) as nfe:
-            logger.exception(
-                "An error occured with the database in execute()."
-            )
-            raise DatabaseNonFatalException() from nfe
-        except Exception as e:
-            logger.exception(
-                "A (likely client-side) fatal error occured calling execute()."
-            )
-            raise DatabaseFatalException() from e
+        if auto_commit:
+            self.connection.commit()
 
+    @log_reraise_fatal_exception
+    @log_reraise_non_fatal_exception
     def fetchone(self) -> Tuple:
+        """
+        Fetches the next row of a query result set.
+
+        Returns:
+            Tuple: A tuple representing the next row of a query result set.
+
+        Raises:
+            DatabaseNonFatalException: For non-fatal internal psycopg2 exceptions.
+            DatabaseFatalException: For fatal internal psycopg2 exceptions.
+        """
         self._validate_connection()
 
-        try:
-            return self.cursor.fetchone()
-        except (psycopg2.OperationalError, psycopg2.InternalError) as nfe:
-            logger.exception(
-                "An error occured with the database in fetchone()."
-            )
-            raise DatabaseNonFatalException() from nfe
-        except Exception as e:
-            logger.exception("A fatal error occured calling fetchone().")
-            raise DatabaseFatalException() from e
+        return self.cursor.fetchone()
 
+    @log_reraise_fatal_exception
+    @log_reraise_non_fatal_exception
     def fetchall(self) -> List[Tuple]:
+        """
+        Fetches all (remaining) rows of a query result set.
+
+        Returns:
+            List[Tuple]: A list of tuples representing the rows of a query result set.
+
+        Raises:
+            DatabaseNonFatalException: For non-fatal internal psycopg2 exceptions.
+            DatabaseFatalException: For fatal internal psycopg2 exceptions.
+        """
         self._validate_connection()
 
-        try:
-            return self.cursor.fetchall()
-        except (psycopg2.OperationalError, psycopg2.InternalError) as nfe:
-            logger.exception(
-                "An error occured with the database in fetchall()."
-            )
-            raise DatabaseNonFatalException() from nfe
-        except Exception as e:
-            logger.exception("A fatal error occured calling fetchall().")
-            raise DatabaseFatalException() from e
+        return self.cursor.fetchall()
 
     def _validate_connection(self):
+        """
+        Checks if the connection and cursor are established.
+
+        Raises:
+            DatabaseNotInitialisedException: If the connection or cursor is not established.
+        """
         if not self.cursor or not self.connection:
             logger.error(
                 "Connection not initialised before attempting queries."
