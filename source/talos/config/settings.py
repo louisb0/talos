@@ -22,6 +22,12 @@ class Settings:
     RESCAN_QUEUE = os.getenv("RESCAN_QUEUE")
     SECONDS_BETWEEN_RESCANS = int(os.getenv("SECONDS_BETWEEN_RESCANS"))
 
+    # rescanner_and_post_scraper.py
+    MAX_POSTS_PER_REQUEST = os.getenv("MAX_POSTS_PER_REQUEST")
+    USER_AGENT = os.getenv("USER_AGENT")
+    RESPONSE_STORAGE_PATH = os.getenv("RESPONSE_STORAGE_PATH")
+    # TODO: make the table names configurable for rescanner
+
     @classmethod
     def validate(cls):
         for attr, value in cls.__dict__.items():

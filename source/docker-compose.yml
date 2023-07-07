@@ -1,5 +1,5 @@
 services:
-  database: #sudo tar -czvpf archive.tar.gz /path/to/volume : sudo tar -xzvpf archive.tar.gz
+  database:
     image: postgres:latest
     hostname: ${DB_HOSTNAME}
     networks:
@@ -31,6 +31,22 @@ services:
       - talos-network
     env_file:
       - .env
+    depends_on:
+      - database
+      - rabbitmq
+  rescanner-post-scraper:
+    build:
+      context: .
+      dockerfile: docker-images/rescanner-post-scraper/Dockerfile
+    networks:
+      - talos-network
+    volumes:
+      - ./volumes/responses/posts:/app/responses
+    env_file:
+      - .env
+    depends_on:
+      - database
+      - rabbitmq
 networks:
   talos-network:
     driver: bridge
