@@ -23,6 +23,10 @@ class RabbitMQ:
         """
         self.connection: pika.BlockingConnection = None
         self.channel: BlockingChannel = None
+
+        if not isinstance(queues, tuple):
+            queues = (queues,)
+
         self.queues = queues
 
     def __enter__(self):
@@ -202,7 +206,7 @@ class RabbitMQ:
         self._validate_connection()
         messages = []
 
-        for i in range(n):
+        for _ in range(n):
             messages.append(self.consume_one_message(queue_name))
 
         return messages

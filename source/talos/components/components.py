@@ -91,7 +91,7 @@ class ConsumerComponent(BaseComponent):
         super().run()
 
         try:
-            with RabbitMQ(self.producing_queue) as queue:
+            with RabbitMQ((self.producing_queue,)) as queue:
                 queue.continually_consume_messages(
                     queue_name=self.producing_queue,
                     callback_function=self.handle_one_pass_with_retry
