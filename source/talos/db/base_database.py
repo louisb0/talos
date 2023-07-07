@@ -86,6 +86,19 @@ class BaseDatabase:
         self._validate_connection()
 
         return self.cursor.fetchall()
+    
+    @log_reraise_fatal_exception
+    @log_reraise_non_fatal_exception
+    def commit(self):
+        """
+        Commits the current pending executions on the PostgreSQL database.
+
+        Raises:
+            DatabaseNonFatalException: For non-fatal internal psycopg2 exceptions.
+            DatabaseFatalException: For fatal internal psycopg2 exceptions.
+        """
+        self._validate_connection()
+        self.connection.commit()
 
     def _validate_connection(self):
         """

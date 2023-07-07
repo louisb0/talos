@@ -39,19 +39,6 @@ class TransactionalDatabase(BaseDatabase):
 
     @log_reraise_fatal_exception
     @log_reraise_non_fatal_exception
-    def commit_transaction(self):
-        """
-        Commits the current transaction on the PostgreSQL database.
-
-        Raises:
-            DatabaseNonFatalException: For non-fatal internal psycopg2 exceptions.
-            DatabaseFatalException: For fatal internal psycopg2 exceptions.
-        """
-        self._validate_connection()
-        self.connection.commit()
-
-    @log_reraise_fatal_exception
-    @log_reraise_non_fatal_exception
     def rollback_transaction(self):
         """
         Rolls back the current transaction on the PostgreSQL database.
