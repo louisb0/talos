@@ -42,7 +42,7 @@ class BaseComponent(ABC):
 
     def run(self):
         logger.info(
-            f"{type(self).__name__} starting. Sleeping for {Settings.STARTUP_SLEEP_TIME_SECS}..."
+            f"{type(self).__name__} starting. Sleeping for {Settings.STARTUP_SLEEP_TIME_SECS} while containers start up..."
         )
 
         time.sleep(Settings.STARTUP_SLEEP_TIME_SECS)
