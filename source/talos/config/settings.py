@@ -25,7 +25,7 @@ class Settings:
 
     RESCAN_QUEUE = os.getenv("RESCAN_QUEUE")
 
-    MAX_POSTS_PER_REQUEST = os.getenv("MAX_POSTS_PER_REQUEST")
+    MAX_POSTS_PER_REQUEST = int(os.getenv("MAX_POSTS_PER_REQUEST"))
     USER_AGENT = os.getenv("USER_AGENT")
     RESPONSE_STORAGE_PATH = os.getenv("RESPONSE_STORAGE_PATH")
 
