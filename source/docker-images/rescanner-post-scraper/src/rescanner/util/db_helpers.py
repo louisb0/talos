@@ -1,6 +1,9 @@
 from typing import List, Union
 
+from psycopg2.extensions import AsIs
+
 from talos.db import ContextDatabase, TransactionalDatabase
+from talos.config import Settings
 
 def get_last_seen_post_id(subreddit: str) -> Union[int, None]:
     """
@@ -21,16 +24,16 @@ def get_last_seen_post_id(subreddit: str) -> Union[int, None]:
             SELECT 
                 sp.id AS post_id
             FROM 
-                rescans r
+                %s r
             JOIN 
-                scraped_posts sp ON r.id = sp.rescan_id
+                %s sp ON r.id = sp.rescan_id
             WHERE 
-                r.subreddit = 'universityofauckland'
+                r.subreddit = %s
             ORDER BY 
                 sp.scraped_at DESC
             LIMIT 1;
             """,
-            (subreddit,)
+            (AsIs(Settings.RESCANS_TABLE), AsIs(Settings.SCRAPED_POST_TABLE), subreddit)
         )
 
         result = cdb.fetchone()
@@ -51,8 +54,8 @@ def create_filestore_entries(tdb: TransactionalDatabase, file_names: List[str]) 
     ids = []
     for file_name in file_names:
         tdb.execute(
-            query="INSERT INTO filestore (file_name) VALUES (%s) RETURNING id",
-            params=(file_name,)
+            query="INSERT INTO %s (file_name) VALUES (%s) RETURNING id",
+            params=(AsIs(Settings.FILESTORE_TABLE), file_name)
         )
         ids.append(tdb.fetchone()[0])
 
@@ -71,8 +74,8 @@ def create_rescan_entry(tdb: TransactionalDatabase, subreddit: str) -> int:
         int: The ID of the created rescan entry.
     """
     tdb.execute(
-        query="INSERT INTO rescans (subreddit) VALUES (%s) RETURNING id",
-        params=(subreddit,)
+        query="INSERT INTO %s (subreddit) VALUES (%s) RETURNING id",
+        params=(AsIs(Settings.RESCANS_TABLE), subreddit)
     )
 
     return tdb.fetchone()[0]
@@ -89,8 +92,8 @@ def create_rescan_response_entries(tdb: TransactionalDatabase, rescan_id: int, f
     """
     for filestore_id in filestore_ids:
         tdb.execute(
-            query="INSERT INTO rescan_responses (rescan_id, file_id) VALUES (%s, %s)",
-            params=(rescan_id, filestore_id)
+            query="INSERT INTO %s (rescan_id, file_id) VALUES (%s, %s)",
+            params=(AsIs(Settings.RESCAN_RESPONSE_TABLE), rescan_id, filestore_id)
         )
 
 
@@ -105,8 +108,8 @@ def create_scraped_post_entry(tdb: TransactionalDatabase, post_id: int, rescan_i
         file_id (int): The ID of the file previously created in the transaction.
     """
     tdb.execute(
-        query="INSERT INTO scraped_posts (id, rescan_id, file_id) VALUES (%s, %s, %s)",
-        params=(post_id, rescan_id, file_id)
+        query="INSERT INTO %s (id, rescan_id, file_id) VALUES (%s, %s, %s)",
+        params=(AsIs(Settings.SCRAPED_POST_TABLE), post_id, rescan_id, file_id)
     )
 
 
@@ -119,6 +122,6 @@ def mark_rescan_processed(tdb: TransactionalDatabase, subreddit: str):
         subreddit (str): The subreddit whose rescan to mark as processed.
     """
     tdb.execute(
-        query="UPDATE subscriptions SET is_currently_queued=false WHERE subreddit=%s",
-        params=(subreddit,)
+        query="UPDATE %s SET is_currently_queued=false WHERE subreddit=%s",
+        params=(AsIs(Settings.SUBSCRIPTIONS_TABLE), subreddit)
     )

@@ -2,7 +2,6 @@ import os
 
 from talos.exceptions.config import EnvironmentVariableNotSetException
 
-
 class Settings:
     DB_HOSTNAME = os.getenv("DB_HOSTNAME")
     DB_NAME = os.getenv("DB_NAME")
@@ -16,17 +15,19 @@ class Settings:
     RABBITMQ_EXCHANGE_NAME = os.getenv("RABBITMQ_EXCHANGE_NAME")
 
     STARTUP_SLEEP_TIME_SECS = int(os.getenv("STARTUP_SLEEP_TIME_SECS"))
-
-    # rescan_producer.py
-    SUBSCRIPTIONS_TABLE = os.getenv("SUBSCRIPTIONS_TABLE")
-    RESCAN_QUEUE = os.getenv("RESCAN_QUEUE")
     SECONDS_BETWEEN_RESCANS = int(os.getenv("SECONDS_BETWEEN_RESCANS"))
 
-    # rescanner_and_post_scraper.py
+    SUBSCRIPTIONS_TABLE = os.getenv("SUBSCRIPTIONS_TABLE")
+    FILESTORE_TABLE = os.getenv("FILESTORE_TABLE")
+    RESCANS_TABLE = os.getenv("RESCANS_TABLE")
+    RESCAN_RESPONSE_TABLE = os.getenv("RESCAN_RESPONSE_TABLE")
+    SCRAPED_POST_TABLE = os.getenv("SCRAPED_POST_TABLE")
+
+    RESCAN_QUEUE = os.getenv("RESCAN_QUEUE")
+
     MAX_POSTS_PER_REQUEST = os.getenv("MAX_POSTS_PER_REQUEST")
     USER_AGENT = os.getenv("USER_AGENT")
     RESPONSE_STORAGE_PATH = os.getenv("RESPONSE_STORAGE_PATH")
-    # TODO: make the table names configurable for rescanner
 
     @classmethod
     def validate(cls):
