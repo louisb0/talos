@@ -86,7 +86,6 @@ class RabbitMQ:
             self.connection.close()
 
     @log_reraise_fatal_exception
-    @log_reraise_bad_message_exception
     @log_reraise_non_fatal_exception
     def publish_message(self, queue_name: str, message: str) -> None:
         """
@@ -97,7 +96,6 @@ class RabbitMQ:
             message (str): The message to be published.
 
         Raises:
-            BadMessageException: If any exceptions occur during message publishing.
             RabbitMQNonFatalException: For non-fatal internal AMPQ exceptions.
             RabbitMQFatalException: For fatal internal AMPQ exceptions.
         """
@@ -128,7 +126,6 @@ class RabbitMQ:
             self.publish_message(queue_name, message)
 
     @log_reraise_fatal_exception
-    @log_reraise_bad_message_exception
     @log_reraise_non_fatal_exception
     def continually_consume_messages(self, queue_name: str, callback_function: Callable) -> None:
         """
@@ -140,7 +137,6 @@ class RabbitMQ:
             callback_function (Callable): The function to be called for each message.
 
         Raises:
-            BadMessageException: If any message based exceptions occur during message consumption.
             RabbitMQNonFatalException: For non-fatal internal AMPQ exceptions.
             RabbitMQFatalException: For fatal internal AMPQ exceptions.
         """

@@ -1,7 +1,6 @@
 from typing import List, Tuple
 
 from talos.exceptions.db import *
-from talos.logger import logger
 
 from .base_database import BaseDatabase
 

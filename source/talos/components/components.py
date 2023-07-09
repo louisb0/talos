@@ -6,7 +6,6 @@ from tenacity import retry, stop_after_attempt, wait_fixed, retry_if_exception_t
 from talos.config import Settings
 from talos.queuing import RabbitMQ
 from talos.exceptions.base import FatalException, NonFatalException
-from talos.exceptions.queuing import BadMessageException
 from talos.logger import logger
 
 
@@ -96,7 +95,5 @@ class ConsumerComponent(BaseComponent):
                     queue_name=self.producing_queue,
                     callback_function=self.handle_one_pass_with_retry
                 )
-        except BadMessageException as bme:
-            self.handle_bad_message(bme)
         except Exception as e:
             self.handle_propogated_error(e)
