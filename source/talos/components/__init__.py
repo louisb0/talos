@@ -1,1 +1,3 @@
-from .components import BaseComponent, ConsumerComponent, ProducerComponent
+from .base_component import BaseComponent
+from .producer_component import ProducerComponent
+from .consumer_component import ConsumerComponent

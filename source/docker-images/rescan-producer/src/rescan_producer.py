@@ -64,9 +64,8 @@ class RescanProducer(ProducerComponent):
         super().__init__(retry_attempts, time_between_attempts)
         Settings.validate()
 
-    def handle_fatal_error(self):
-        logger.error("A fatal error occured. Exiting...")
-        sys.exit(1)
+    def handle_critical_error(self):
+        logger.error("A fatal error occured.")
 
     def _handle_one_pass(self):
         logger.info("Beginning a rescan.")

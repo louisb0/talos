@@ -1,4 +1,5 @@
-from talos.exceptions.base import FatalException, NonFatalException, log_and_reraise_exception
+from talos.exceptions.base import FatalException, NonFatalException
+from talos.util.decorators import log_and_reraise_exception
 
 NON_FATAL_EXCEPTIONS = (
     OSError

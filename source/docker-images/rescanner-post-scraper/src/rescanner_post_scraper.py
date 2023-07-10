@@ -24,10 +24,7 @@ class RescannerPostScraper(ConsumerComponent):
         super().__init__(retry_attempts, time_between_attempts, producing_queue)
         Settings.validate()
 
-    def handle_fatal_error(self):
-        pass
-
-    def handle_bad_message(self):
+    def handle_critical_error(self):
         pass
 
     def collect_and_write_data(self, message: str) -> Tuple[str, Dict[Dict, Dict], List[str]]:
