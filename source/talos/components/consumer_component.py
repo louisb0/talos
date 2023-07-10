@@ -55,4 +55,4 @@ class ConsumerComponent(BaseComponent):
                     callback_function=self.handle_one_pass_with_retry
                 )
         except Exception as e:
-            self.handle_propogated_error(e)
+            self.route_error(e)

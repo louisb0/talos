@@ -1,4 +1,5 @@
 import json
+import sys
 from typing import Dict, List, Tuple
 
 from talos.config import Settings
@@ -25,7 +26,8 @@ class RescannerPostScraper(ConsumerComponent):
         Settings.validate()
 
     def handle_critical_error(self):
-        pass
+        logger.error("Retries failed, handle_critical_error() hit. Exiting...")
+        sys.exit(1)
 
     def collect_and_write_data(self, message: str) -> Tuple[str, Dict[Dict, Dict], List[str]]:
         """

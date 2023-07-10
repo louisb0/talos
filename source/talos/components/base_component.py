@@ -20,9 +20,9 @@ class BaseComponent(ABC):
         self.retry_attempts = retry_attempts
         self.time_between_attempts = time_between_attempts
 
-    def handle_propogated_error(self, error: Exception):
+    def route_error(self, error: BaseException):
         """
-        Handles an error that has been propagated up from a lower-level function or method.
+        Routes an error to a handle when propagated up from a lower-level function or method.
         Reached when exceeding NonFatalException retries, or in case of a FatalException.
 
         Args:
@@ -42,7 +42,7 @@ class BaseComponent(ABC):
             args: Positional arguments to be passed to the _handle_one_pass method.
             kwargs: Keyword arguments to be passed to the _handle_one_pass method.
         """
-        @retry_fixed(retry_attempts=5, time_between_attempts=10, exception_types=(NonFatalException,))
+        @retry_fixed(retry_attempts=self.retry_attempts, time_between_attempts=self.time_between_attempts, exception_types=(NonFatalException,))
         def _handle_one_pass_with_retry(*args, **kwargs):
             self._handle_one_pass(*args, **kwargs)
 
