@@ -34,8 +34,11 @@ class BaseDatabase:
             DatabaseNonFatalException: For non-fatal internal psycopg2 exceptions.
             DatabaseFatalException: For fatal internal psycopg2 exceptions.
         """
-        self.connection = psycopg2.connect(**self.CONFIG)
-        self.cursor = self.connection.cursor()
+        if not self.connection or self.connection.closed:
+            self.connection = psycopg2.connect(**self.CONFIG)
+        
+        if not self.cursor or self.cursor.closed:
+            self.cursor = self.connection.cursor()
 
     @log_reraise_fatal_exception
     @log_reraise_non_fatal_exception
@@ -98,6 +101,7 @@ class BaseDatabase:
             DatabaseFatalException: For fatal internal psycopg2 exceptions.
         """
         self._validate_connection()
+
         self.connection.commit()
 
     def _validate_connection(self):
