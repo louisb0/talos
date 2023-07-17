@@ -34,19 +34,13 @@ class TestConsumerComponent(unittest.TestCase):
 
         logging.getLogger("talos.logger").setLevel(logging.CRITICAL)
 
-        # stops an actual connection attempt
-        self.mock_rabbitmq_connect = patch(
-            "talos.queuing.rabbitmq.RabbitMQ.connect", return_value=None
-        ).start()
-
         # stops 30s sleeps for the test case
         self.mock_sleep = patch(
             "talos.components.base_component.time.sleep", return_value=None
         ).start()
 
     def tearDown(self):
-        self.mock_rabbitmq_connect.stop()
-        self.mock_sleep.stop()
+        self.mock_sleep.reset_mock()
 
     def test_init(self):
         self.assertEqual(self.test_component.retry_attempts, 5)
@@ -56,7 +50,8 @@ class TestConsumerComponent(unittest.TestCase):
     @patch("talos.queuing.rabbitmq.RabbitMQ.continually_consume_messages", return_value=None)
     @patch.object(logging.getLogger("talos.logger"), 'info')
     def test_run(self, mock_logger, mock_consume):
-        self.test_component.run()
+        with patch("talos.queuing.rabbitmq.RabbitMQ.connect") as mock_connect:
+            self.test_component.run()
 
         # from super().__init__
         mock_logger.assert_called_once()
@@ -70,7 +65,8 @@ class TestConsumerComponent(unittest.TestCase):
 
     @patch("talos.queuing.rabbitmq.RabbitMQ.__init__")
     def test_rabbitmq_params(self, mock_rabbitmq):
-        self.test_component.run()
+        with patch("talos.queuing.rabbitmq.RabbitMQ.connect") as mock_connect:
+            self.test_component.run()
 
         mock_rabbitmq.assert_called_once_with(
             (self.test_component.producing_queue,)
@@ -79,7 +75,8 @@ class TestConsumerComponent(unittest.TestCase):
     @patch.object(ConcreteConsumerComponent, "route_error")
     @patch.object(ConcreteConsumerComponent, "handle_one_pass_with_retry", side_effect=Exception)
     def test_error_propagation(self, mock_handle_pass, mock_route_error):
-        self.test_component.run()
+        with patch("talos.queuing.rabbitmq.RabbitMQ.connect") as mock_connect:
+            self.test_component.run()
 
         mock_route_error.assert_called_once()
         self.assertIsInstance(
