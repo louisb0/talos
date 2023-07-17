@@ -3,5 +3,18 @@ services:
     build:
       context: ../
       dockerfile: ./tests/Dockerfile
+    networks:
+      - testing-network
     env_file:
       - ../source/.env
+  rabbitmq:
+    image: rabbitmq:3.12.0-management
+    hostname: rabbit
+    networks:
+      - testing-network
+    ports:
+      - 5672:5672
+      - 15672:15672
+networks:
+  testing-network:
+    driver: bridge
