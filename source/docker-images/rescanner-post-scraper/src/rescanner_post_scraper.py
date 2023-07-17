@@ -97,22 +97,14 @@ class RescannerPostScraper(ConsumerComponent):
             subreddit, responses, file_paths = self.collect_and_write_data(message)
             logger.info(f"Collected {len(responses)} responses, wrote {file_paths} to disk.")
 
-            tdb = TransactionalDatabase()
-            tdb.connect()
-            tdb.begin_transaction()
-
-            self.parse_and_store_data(tdb, subreddit, responses, file_paths)
-            db_helpers.mark_rescan_processed(tdb, subreddit)
-            
-            tdb.commit()
-            logger.info(f"{len(responses)} stored in database. Cleaning up...")
+            with TransactionalDatabase() as tdb:
+                self.parse_and_store_data(tdb, subreddit, responses, file_paths)
+                db_helpers.mark_rescan_processed(tdb, subreddit)
+                logger.info(f"{len(responses)} stored in database. Cleaning up...")
         except Exception:
-            if tdb:
-                tdb.rollback_transaction()
-
             if file_paths:
                 file_helpers.rollback_written_responses(file_paths)
-
+                
             raise
         finally:
             if tdb:

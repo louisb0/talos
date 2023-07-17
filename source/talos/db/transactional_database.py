@@ -6,6 +6,31 @@ from .base_database import BaseDatabase
 
 
 class TransactionalDatabase(BaseDatabase):
+    """
+    Used when a certain execute flow makes codependent queries to the
+    database, e.g. foreign keys, allowing for implementation of a two phase
+    commit.
+    """
+    def __enter__(self):
+        """
+        Connects to the database and begins a transaction when the object is used in a `with` statement.
+        """
+        self.connect()
+        self.begin_transaction()
+        return self
+    
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """
+        Performs a rollback or commit depending on success of `with` block,
+        before finally disconnecting from the database.
+        """
+        if exc_type is not None:  # An exception occurred
+            self.rollback_transaction()
+        else:
+            self.commit()
+
+        self.disconnect()
+
     @log_reraise_fatal_exception
     @log_reraise_non_fatal_exception
     def execute(self, query: str, params: Tuple = None) -> None:
@@ -35,6 +60,7 @@ class TransactionalDatabase(BaseDatabase):
             DatabaseFatalException: For fatal internal psycopg2 exceptions.
         """
         self._validate_connection()
+        
         self.cursor.execute("BEGIN")
 
     @log_reraise_fatal_exception
@@ -48,4 +74,5 @@ class TransactionalDatabase(BaseDatabase):
             DatabaseFatalException: For fatal internal psycopg2 exceptions.
         """
         self._validate_connection()
+
         self.connection.rollback()
