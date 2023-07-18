@@ -1,6 +1,8 @@
+import os
 from typing import Dict, List
 
 from talos.util import files
+from talos.config import Settings
 
 def write_responses_to_disk(subreddit: str, responses: Dict[Dict, Dict]) -> List[str]:
     """
@@ -23,9 +25,18 @@ def write_responses_to_disk(subreddit: str, responses: Dict[Dict, Dict]) -> List
         paths=paths
     )
 
+
 def rollback_written_responses(paths: List[str]):
     """
     Deletes the subreddit responses from disk, in case one of the two phases fail 
     in the two-phase commit, allowing for a retry.
     """
     files.delete_from_disk(paths)
+
+
+def create_responses_directory() -> None:
+    """
+    Creates the /app/responses/ directory if it doesn't exist on launch.
+    """
+    if not os.path.exists(Settings.RESPONSE_STORAGE_PATH):
+        os.mkdir(Settings.RESPONSE_STORAGE_PATH)

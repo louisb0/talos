@@ -1,14 +1,13 @@
-import requests
-import regex
 import base64
-import time
 from typing import List, Dict
 
-from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
-
+from talos.util.decorators import retry_exponential
 from talos.config import Settings
-from talos.logger import logger
+from talos.exceptions.api import *
+from talos.api import Requests
 
+# probably refactor into an iterator at some point
+# when i move to storing posts instead of api responses
 
 class ResponseCollector:
     def __init__(self, subreddit, stopping_post_id):
@@ -54,7 +53,7 @@ class ResponseCollector:
         Returns:
             Dict: The raw response and the posts contained within it.
         """
-        response = self.response_requester.get_new_posts(
+        response = self.response_requester.get_response_with_posts(
             subreddit=self.subreddit,
             after=self.after
         )
@@ -115,18 +114,12 @@ class ResponseRequester:
         """
         Initializes the ResponseRequester object, generating headers for further requests.
         """
-        self.headers = self._generate_headers()
+        self.requests = Requests()
 
-    # TODO: create custom decorator and error wrappers in /source/talos
-    @retry(stop=stop_after_attempt(5),
-           wait=wait_exponential(min=2, max=60),
-           retry=retry_if_exception_type(Exception),
-           before_sleep=lambda retry_state: logger.info(
-               f"Retrying... {retry_state}"),
-           reraise=True)
-    def get_new_posts(self, subreddit, after=None):
+    @retry_exponential(minimum_wait_time=1, maximum_wait_time=30, exception_types=(APINonFatalException,))
+    def get_response_with_posts(self, subreddit, after=None):
         """
-        Gets new posts from the specified subreddit.
+        Get the raw API response containing new posts for the given subreddit.
 
         Args:
             subreddit (str): The subreddit from which to get new posts.
@@ -137,11 +130,13 @@ class ResponseRequester:
         """
         request_body = self._format_body(subreddit, after)
 
-        return requests.post(
+        return self.requests.send(
             url="https://gql.reddit.com/",
-            json=request_body,
-            headers=self.headers
-        ).json()
+            type=Requests.TYPE_POST,
+            body=request_body,
+            is_json=True,
+            with_auth=True
+        )
 
     def _format_body(self, subreddit, after=None):
         """
@@ -183,38 +178,3 @@ class ResponseRequester:
             ).decode("utf-8")
 
         return body
-
-    # TODO: create custom decorator and error wrappers in /source/talos
-    @retry(stop=stop_after_attempt(5),
-           wait=wait_exponential(min=2, max=60),
-           retry=retry_if_exception_type(Exception),
-           before_sleep=lambda retry_state: logger.info(
-               f"Retrying... {retry_state}"),
-           reraise=True)
-    def _generate_headers(self):
-        """
-        Generates headers for a request.
-
-        Returns:
-            Dict: The headers, including a user agent and bearer authorization token.
-        """
-        token = self._generate_token()
-        if token is None:
-            raise ValueError()
-
-        return {
-            "Authorization": "Bearer " + token,
-            "User-Agent": Settings.USER_AGENT
-        }
-
-    def _generate_token(self):
-        """
-        Generates a token for authorization.
-
-        Returns:
-            str: The bearer authorization token.
-        """
-        response = requests.get("https://reddit.com")
-        match = regex.search(r'"accessToken":"(.*?)"', response.text)
-
-        return match.group(1) if match else None

@@ -1,12 +1,12 @@
 import json
 import sys
 from typing import Dict, List, Tuple
+import os
 
 from talos.config import Settings
 from talos.logger import logger
 from talos.components import ConsumerComponent
 from talos.db import TransactionalDatabase
-
 
 from rescanner.api import ResponseCollector
 from rescanner.util import db_helpers, file_helpers
@@ -25,11 +25,16 @@ class RescannerPostScraper(ConsumerComponent):
         super().__init__(retry_attempts, time_between_attempts, producing_queue)
         Settings.validate()
 
+        file_helpers.create_responses_directory()
+
     def handle_critical_error(self):
+        """
+        Handles critical errors which could not be retried.
+        """
         logger.error("Retries failed, handle_critical_error() hit. Exiting...")
         sys.exit(1)
 
-    def collect_and_write_data(self, message: str) -> Tuple[str, Dict[Dict, Dict], List[str]]:
+    def collect_and_store_local(self, message: str) -> Tuple[str, Dict[Dict, Dict], List[str]]:
         """
         Collects the subreddit, responses and writes them to the file.
 
@@ -51,7 +56,7 @@ class RescannerPostScraper(ConsumerComponent):
 
         return subreddit, responses, file_paths
 
-    def parse_and_store_data(self, tdb: TransactionalDatabase, subreddit: str, responses: Dict[Dict, Dict], file_paths: List[str]) -> None:
+    def parse_and_store_remote(self, tdb: TransactionalDatabase, subreddit: str, responses: Dict[Dict, Dict], file_paths: List[str]) -> None:
         """
         Parses and stores the collected data in the database.
 
@@ -81,34 +86,34 @@ class RescannerPostScraper(ConsumerComponent):
                     file_id=filestore_ids[index]
                 )
 
+        db_helpers.mark_rescan_processed(tdb, subreddit)
+
     def _handle_one_pass(self, message: str) -> None:
         """
-        Handles one pass of the run loop. It collects, parses, and stores data, using a two-phase commit.
+        Handles one pass of the run loop, collecting the newest posts and storing them
+        on disk and their references in the database.
 
         Args:
             message (str): The message containing the subreddit from which to scrape data.
         """
-        tdb = None
         file_paths = None
 
+        # if local() fails, nothing written to DB and files are deleted
+        # if remote() fails, transaction rolled back and files are deleted
         try:
-            logger.info(f"Received rescan request {message}...")
-
-            subreddit, responses, file_paths = self.collect_and_write_data(message)
-            logger.info(f"Collected {len(responses)} responses, wrote {file_paths} to disk.")
+            # parse subreddit from message, 'scroll' reddit, write files to disk
+            subreddit, responses, file_paths = self.collect_and_store_local(
+                message)
 
             with TransactionalDatabase() as tdb:
-                self.parse_and_store_data(tdb, subreddit, responses, file_paths)
-                db_helpers.mark_rescan_processed(tdb, subreddit)
-                logger.info(f"{len(responses)} stored in database. Cleaning up...")
+                # store files, posts, rescan, etc. entires in DB
+                self.parse_and_store_remote(
+                    tdb, subreddit, responses, file_paths)
         except Exception:
             if file_paths:
                 file_helpers.rollback_written_responses(file_paths)
-                
+
             raise
-        finally:
-            if tdb:
-                tdb.disconnect()
 
     def run(self):
         super().run()
