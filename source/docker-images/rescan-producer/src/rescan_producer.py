@@ -45,7 +45,7 @@ class RescanProducer(ProducerComponent):
                 logger.info(f"No rescan is required for {subreddit}.")
 
         logger.info(
-            f"Pass complete. Sleeping for {Settings.SECONDS_BETWEEN_RESCANS} seconds..."
+            f"Pass complete. Sleeping for {Settings.SECONDS_BETWEEN_RESCANS} seconds...\n"
         )
         time.sleep(Settings.SECONDS_BETWEEN_RESCANS)
 

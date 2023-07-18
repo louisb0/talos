@@ -6,14 +6,25 @@ from talos.logger import logger
 from talos.components import ConsumerComponent
 from talos.db import TransactionalDatabase
 
-from rescanner.api import PostCollector
-from rescanner.util import db_helpers
+from lib.api import PostCollector
+from lib.util import db_helpers
 
 
-class RescannerPostScraper(ConsumerComponent):
+class Rescanner(ConsumerComponent):
+    """
+    The purpose of the rescanner is to consume from the rescan messages produced
+    by rescan-producer, containing the subreddit.
+
+    Then, it gets the newest, unseen, posts from this subreddit. It writes these
+    to the scraped_posts table, updates the last scanned time on the subscription,
+    and creates an entry for the rescan (which the post references as a foreign key).
+
+    TODO: Queue and schedule comment scrapes for the seen posts.
+    """
+
     def __init__(self, retry_attempts: int, time_between_attempts: int, producing_queue: str):
         """
-        Initializes the RescannerPostScraper object.
+        Initializes the Rescanner object.
 
         Args:
             retry_attempts (int): The number of retry attempts for handling errors.

@@ -34,10 +34,10 @@ services:
     depends_on:
       - database
       - rabbitmq
-  rescanner-post-scraper:
+  rescanner:
     build:
       context: .
-      dockerfile: docker-images/rescanner-post-scraper/Dockerfile
+      dockerfile: docker-images/rescanner/Dockerfile
     networks:
       - talos-network
     volumes:

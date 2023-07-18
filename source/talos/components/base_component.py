@@ -75,7 +75,7 @@ class BaseComponent(ABC):
         Subclasses call this implementation on start to reduce boiler plate.
         """
         logger.info(
-            f"{type(self).__name__} starting. Sleeping for {Settings.STARTUP_SLEEP_TIME_SECS}s while containers start up..."
+            f"{type(self).__name__} starting. Sleeping for {Settings.STARTUP_SLEEP_TIME_SECS}s while containers start up...\n"
         )
 
         time.sleep(Settings.STARTUP_SLEEP_TIME_SECS)
