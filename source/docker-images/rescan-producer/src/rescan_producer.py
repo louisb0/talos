@@ -5,7 +5,7 @@ from talos.config import Settings
 from talos.logger import logger
 from talos.components import ProducerComponent
 
-from rescan_producer.util import db_helpers, logic_helpers, queue_helpers
+from lib.util import db_helpers, logic_helpers, queue_helpers
 
 class RescanProducer(ProducerComponent):
     def __init__(self, retry_attempts, time_between_attempts):
