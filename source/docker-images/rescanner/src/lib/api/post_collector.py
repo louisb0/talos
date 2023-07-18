@@ -8,11 +8,11 @@ from talos.exceptions.api import *
 from talos.util.decorators import retry_exponential
 
 class PostCollector:
-    def __init__(self, subreddit, stopping_post_id):
+    def __init__(self, subreddit: str, stopping_post_id: str, requests_obj: Requests):
         self.subreddit: str = subreddit
         self.stopping_post_id: str = stopping_post_id
 
-        self.response_fetcher = PostResponseFetcher()
+        self.response_fetcher = PostResponseFetcher(requests_obj)
         self.unprocessed_posts: List = []
 
         self.after: str = None
@@ -66,11 +66,11 @@ class PostCollector:
             self.after = self.unprocessed_posts[-1]["id"]
 
 class PostResponseFetcher:
-    def __init__(self):
+    def __init__(self, requests_obj: Requests):
         """
         Initializes the ResponseRequester object, generating headers for further requests.
         """
-        self.requests = Requests()
+        self.requests = requests_obj
 
     @retry_exponential(minimum_wait_time=1, maximum_wait_time=30, exception_types=(APINonFatalException,))
     def get_response_with_posts(self, subreddit: str, after: str = None) -> Dict:

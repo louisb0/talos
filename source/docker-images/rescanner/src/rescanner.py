@@ -5,6 +5,7 @@ from talos.config import Settings
 from talos.logger import logger
 from talos.components import ConsumerComponent
 from talos.db import TransactionalDatabase
+from talos.api import Requests
 
 from lib.api import PostCollector
 from lib.util import db_helpers
@@ -55,7 +56,8 @@ class Rescanner(ConsumerComponent):
 
         posts = PostCollector(
             subreddit,
-            stopping_post_id=db_helpers.get_last_seen_post_id(subreddit)
+            stopping_post_id=db_helpers.get_last_seen_post_id(subreddit),
+            requests_obj=self.requests_obj
         ).get_unseen_posts()
         logger.info(
             f"{len(posts)} unseen posts found. Preparing to write to DB...")
@@ -75,4 +77,6 @@ class Rescanner(ConsumerComponent):
                 f"Completed rescan (id: {rescan_id}). {len(posts)} posts added to the database.\n")
 
     def run(self):
+        self.requests_obj = Requests()
+
         super().run()
