@@ -1,14 +1,18 @@
 import unittest
 from unittest.mock import Mock, patch
-import os.path
-
+import os
 import logging
 import json
 
 from talos.util.files import write_to_disk, delete_from_disk
-
+from talos.config import Settings
 
 class TestFiles(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        if not os.path.exists(Settings.RESPONSE_STORAGE_PATH):
+            os.mkdir(Settings.RESPONSE_STORAGE_PATH)
+
     def setUp(self):
         logging.getLogger("talos.logger").setLevel(logging.CRITICAL)
 
