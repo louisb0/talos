@@ -4,6 +4,8 @@ from typing import Dict, List
 from talos.util import files
 from talos.config import Settings
 
+# EVERYTHING UNUSED AFTER REFACTOR OF THIS COMPONENT
+
 def write_responses_to_disk(subreddit: str, responses: Dict[Dict, Dict]) -> List[str]:
     """
     Writes raw subreddit responses to disk.

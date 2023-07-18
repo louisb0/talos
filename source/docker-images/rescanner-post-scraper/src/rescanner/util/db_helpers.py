@@ -1,9 +1,11 @@
-from typing import List, Union
+from typing import List, Union, Dict
+import json
 
 from psycopg2.extensions import AsIs
 
 from talos.db import ContextDatabase, TransactionalDatabase
 from talos.config import Settings
+
 
 def get_last_seen_post_id(subreddit: str) -> Union[int, None]:
     """
@@ -33,33 +35,12 @@ def get_last_seen_post_id(subreddit: str) -> Union[int, None]:
                 sp.scraped_at DESC
             LIMIT 1;
             """,
-            (AsIs(Settings.RESCANS_TABLE), AsIs(Settings.SCRAPED_POST_TABLE), subreddit)
+            (AsIs(Settings.RESCANS_TABLE), AsIs(
+                Settings.SCRAPED_POST_TABLE), subreddit)
         )
 
         result = cdb.fetchone()
         return result[0] if result is not None else None
-
-
-def create_filestore_entries(tdb: TransactionalDatabase, file_names: List[str]) -> List[int]:
-    """
-    Creates entries in the 'filestore' table for each file name.
-
-    Args:
-        tdb (TransactionalDatabase): The database instance with an active transaction to write data.
-        file_names (List[str]): The names of the files for which to create entries.
-
-    Returns:
-        List[int]: The IDs of the created filestore entries.
-    """
-    ids = []
-    for file_name in file_names:
-        tdb.execute(
-            query="INSERT INTO %s (file_name) VALUES (%s) RETURNING id",
-            params=(AsIs(Settings.FILESTORE_TABLE), file_name)
-        )
-        ids.append(tdb.fetchone()[0])
-
-    return ids
 
 
 def create_rescan_entry(tdb: TransactionalDatabase, subreddit: str) -> int:
@@ -81,35 +62,19 @@ def create_rescan_entry(tdb: TransactionalDatabase, subreddit: str) -> int:
     return tdb.fetchone()[0]
 
 
-def create_rescan_response_entries(tdb: TransactionalDatabase, rescan_id: int, filestore_ids: List[int]) -> None:
-    """
-    Creates rescan response entries in the 'rescan_responses' table for each filestore ID.
-
-    Args:
-        tdb (TransactionalDatabase): The database instance with an active transaction to write data.
-        rescan_id (int): The ID of the rescan for which to create entries.
-        filestore_ids (List[int]): The IDs of the filestore entries for which to create rescan response entries.
-    """
-    for filestore_id in filestore_ids:
-        tdb.execute(
-            query="INSERT INTO %s (rescan_id, file_id) VALUES (%s, %s)",
-            params=(AsIs(Settings.RESCAN_RESPONSE_TABLE), rescan_id, filestore_id)
-        )
-
-
-def create_scraped_post_entry(tdb: TransactionalDatabase, post_id: int, rescan_id: int, file_id: int):
+def create_scraped_post_entry(tdb: TransactionalDatabase, post_data: Dict, rescan_id: int):
     """
     Creates a scraped post entry in the 'scraped_posts' table.
 
     Args:
         tdb (TransactionalDatabase): The database instance with an active transaction to write data.
-        post_id (int): The ID of the post.
+        post_data (dict): The post object, containing it's ID.
         rescan_id (int): The ID of the rescan previously created in the transaction.
-        file_id (int): The ID of the file previously created in the transaction.
     """
     tdb.execute(
-        query="INSERT INTO %s (id, rescan_id, file_id) VALUES (%s, %s, %s)",
-        params=(AsIs(Settings.SCRAPED_POST_TABLE), post_id, rescan_id, file_id)
+        query="INSERT INTO %s (id, post_data, rescan_id) VALUES (%s, %s, %s)",
+        params=(AsIs(Settings.SCRAPED_POST_TABLE),
+                post_data["id"], json.dumps(post_data), rescan_id)
     )
 
 
@@ -122,6 +87,6 @@ def mark_rescan_processed(tdb: TransactionalDatabase, subreddit: str):
         subreddit (str): The subreddit whose rescan to mark as processed.
     """
     tdb.execute(
-        query="UPDATE %s SET is_currently_queued=false WHERE subreddit=%s",
+        query="UPDATE %s SET is_currently_queued=false, last_scanned=NOW() WHERE subreddit=%s",
         params=(AsIs(Settings.SUBSCRIPTIONS_TABLE), subreddit)
     )

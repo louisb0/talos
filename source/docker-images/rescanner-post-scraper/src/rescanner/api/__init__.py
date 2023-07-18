@@ -1,1 +1,1 @@
-from .response_collector import ResponseCollector
+from .post_collector import PostCollector
