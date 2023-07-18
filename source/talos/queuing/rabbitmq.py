@@ -17,7 +17,7 @@ class RabbitMQ:
     def __init__(self, queues: Tuple[str]):
         """
         Initialize the RabbitMQ object, should be used with a context manager.
-        
+
         Args:
             queues (Tuple[str]): A tuple containing the names of the queues.
         """
@@ -65,14 +65,21 @@ class RabbitMQ:
             RabbitMQNonFatalException: For non-fatal internal AMPQ exceptions.
             RabbitMQFatalException: For fatal internal AMPQ exceptions.
         """
-        self.connection = pika.BlockingConnection(
-            pika.ConnectionParameters(**self.CONFIG)
-        )
-        self.channel = self.connection.channel()
+        logger.debug("Connecting to RabbitMQ...")
+        if not self.connection or self.connection.is_closed:
+            self.connection = pika.BlockingConnection(
+                pika.ConnectionParameters(**self.CONFIG)
+            )
+            logger.debug("Connected to RabbitMQ.")
 
-        self._declare_exchange()
-        for queue_name in self.queues:
-            self._declare_queue(queue_name)
+        if not self.channel or self.channel.is_closed:
+            self.channel = self.connection.channel()
+            logger.debug("Opened channel to RabbitMQ.")
+
+        if self.connection.is_open and self.channel.is_open:
+            self._declare_exchange()
+            for queue_name in self.queues:
+                self._declare_queue(queue_name)
 
     @log_reraise_fatal_exception
     def disconnect(self) -> None:
@@ -82,11 +89,14 @@ class RabbitMQ:
         Raises:
             RabbitMQFatalException: If any exception occurs during disconnection.
         """
-        if self.connection and self.connection.is_open:
-            self.connection.close()
-
+        logger.debug("Disconnecting from RabbitMQ...")
         if self.channel and self.channel.is_open:
             self.channel.close()
+            logger.debug("Closed channel to RabbitMQ.")
+
+        if self.connection and self.connection.is_open:
+            self.connection.close()
+            logger.debug("Disconnected from RabbitMQ.")
 
     @log_reraise_fatal_exception
     @log_reraise_non_fatal_exception
@@ -113,6 +123,7 @@ class RabbitMQ:
                 delivery_mode=pika.spec.PERSISTENT_DELIVERY_MODE
             )
         )
+        logger.debug(f"Published to queue={queue_name} message={message}.")
 
     # should propogate up, no decorator
     def publish_messages(self, queue_name: str, messages: List[Dict]) -> None:
@@ -154,6 +165,10 @@ class RabbitMQ:
                 ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
                 raise e
 
+        logger.debug(
+            f"Attempting to begin consuming from queue={queue_name} callback_function={callback_function}."
+        )
+
         self.channel.basic_qos(prefetch_count=1)
         self.channel.basic_consume(
             queue=queue_name,
@@ -183,6 +198,9 @@ class RabbitMQ:
 
         method_frame, header_frame, body = self.channel.basic_get(
             queue=queue_name
+        )
+        logger.debug(
+            f"Consumed one message from queue={queue_name} message={body}."
         )
 
         if method_frame:
@@ -227,6 +245,7 @@ class RabbitMQ:
             exchange_type='direct',
             durable=True,
         )
+        logger.debug(f"Declared exchange={Settings.RABBITMQ_EXCHANGE_NAME}.")
 
     @log_reraise_fatal_exception
     @log_reraise_non_fatal_exception
@@ -246,6 +265,9 @@ class RabbitMQ:
             exchange=Settings.RABBITMQ_EXCHANGE_NAME,
             queue=queue_name,
             routing_key=queue_name
+        )
+        logger.debug(
+            f"Declared queue={queue_name}, bound to exhange={Settings.RABBITMQ_EXCHANGE_NAME}."
         )
 
     def _validate_connection(self):

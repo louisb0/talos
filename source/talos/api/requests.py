@@ -43,6 +43,10 @@ class Requests:
         headers = self._generate_headers() if with_auth else None
         response = None
 
+        logger.debug(
+            f"Preparing request with url={url} type={type} is_json={is_json} with_auth={with_auth} body={body} headers={headers}."
+        )
+
         if type == self.TYPE_GET:
             response: requests.Response = self._get(
                 url=url,
@@ -56,8 +60,14 @@ class Requests:
             )
         else:
             raise InvalidRequestType()
-        
-        if with_auth: self.requests_on_token += 1
+
+        if with_auth:
+            self.requests_on_token += 1
+
+        logger.debug(
+            f"Request sent. requests_on_token={self.requests_on_token}. Returning..."
+        )
+
         return response if not is_json else response.json()
 
     @log_reraise_fatal_exception
@@ -74,6 +84,8 @@ class Requests:
         Returns:
             requests.Response
         """
+        logger.debug(f"Sending GET with url={url}...")
+
         return requests.get(
             url=url,
             headers=headers
@@ -90,16 +102,19 @@ class Requests:
             url (str): The URL to send a POST request.
             body (dict): The body of the POST request.
             headers (dict): The headers to sent with the request.
-        
+
         Returns:
             requests.Response: 
         """
+        logger.debug(
+            f"Sending POST with url={url}..."
+        )
+
         return requests.post(
             url=url,
             json=body,
             headers=headers
         )
-        
 
     def _get_token(self) -> str:
         """
@@ -124,14 +139,19 @@ class Requests:
             TokenNotFound (APINonFatalException): If no token is found, a non-fatal
             exception is raised, signalling a retry of the generation.
         """
-        response = self._get(
-            url="https://reddit.com"
+        logger.debug("Attempting to fetch a new token...")
+
+        response = self.send(
+            url="https://reddit.com",
+            type=Requests.TYPE_GET
         )
 
         match = regex.search(r'"accessToken":"(.*?)"', response.text)
         if match:
+            logger.debug(f"Found token {match.group(1)}.")
             return match.group(1)
         else:
+            logger.debug(f"Failed to find token.")
             raise TokenNotFound()
 
     def _generate_headers(self) -> Dict:

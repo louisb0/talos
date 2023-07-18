@@ -52,7 +52,8 @@ class Rescanner(ConsumerComponent):
         """
         subreddit = json.loads(message)["subreddit"]
         logger.info(
-            f"Received rescan request for {subreddit}. Running rescan...")
+            f"Received rescan request for {subreddit}. Running rescan..."
+        )
 
         posts = PostCollector(
             subreddit,
@@ -60,7 +61,8 @@ class Rescanner(ConsumerComponent):
             requests_obj=self.requests_obj
         ).get_unseen_posts()
         logger.info(
-            f"{len(posts)} unseen posts found. Preparing to write to DB...")
+            f"{len(posts)} unseen posts found. Preparing to write to DB..."
+        )
 
         with TransactionalDatabase() as tdb:
             rescan_id = db_helpers.create_rescan_entry(tdb, subreddit)
@@ -73,8 +75,10 @@ class Rescanner(ConsumerComponent):
                 )
 
             db_helpers.mark_rescan_processed(tdb, subreddit)
+            
             logger.info(
-                f"Completed rescan (id: {rescan_id}). {len(posts)} posts added to the database.\n")
+                f"Completed rescan (id: {rescan_id}). {len(posts)} posts added to the database.\n"
+            )
 
     def run(self):
         self.requests_obj = Requests()

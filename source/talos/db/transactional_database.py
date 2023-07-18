@@ -1,6 +1,7 @@
 from typing import List, Tuple
 
 from talos.exceptions.db import *
+from talos.logger import logger
 
 from .base_database import BaseDatabase
 
@@ -11,6 +12,7 @@ class TransactionalDatabase(BaseDatabase):
     database, e.g. foreign keys, allowing for implementation of a two phase
     commit.
     """
+
     def __enter__(self):
         """
         Connects to the database and begins a transaction when the object is used in a `with` statement.
@@ -18,7 +20,7 @@ class TransactionalDatabase(BaseDatabase):
         self.connect()
         self.begin_transaction()
         return self
-    
+
     def __exit__(self, exc_type, exc_val, exc_tb):
         """
         Performs a rollback or commit depending on success of `with` block,
@@ -48,6 +50,7 @@ class TransactionalDatabase(BaseDatabase):
         self._validate_connection()
 
         self.cursor.execute(query, params)
+        logger.debug(f"Executed query={query} with params={params}.")
 
     @log_reraise_fatal_exception
     @log_reraise_non_fatal_exception
@@ -60,8 +63,9 @@ class TransactionalDatabase(BaseDatabase):
             DatabaseFatalException: For fatal internal psycopg2 exceptions.
         """
         self._validate_connection()
-        
+
         self.cursor.execute("BEGIN")
+        logger.debug(f"Began a new transaction.")
 
     @log_reraise_fatal_exception
     @log_reraise_non_fatal_exception
@@ -76,3 +80,4 @@ class TransactionalDatabase(BaseDatabase):
         self._validate_connection()
 
         self.connection.rollback()
+        logger.debug(f"Rolled back the transaction.")

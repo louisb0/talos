@@ -1,6 +1,7 @@
 from typing import List, Tuple
 
 from talos.exceptions.db import *
+from talos.logger import logger
 
 from .base_database import BaseDatabase
 
@@ -37,6 +38,7 @@ class ContextDatabase(BaseDatabase):
         self._validate_connection()
 
         self.cursor.execute(query, params)
+        logger.debug(f"Executed query={query} with params={params}.")
 
         if auto_commit:
             self.connection.commit()

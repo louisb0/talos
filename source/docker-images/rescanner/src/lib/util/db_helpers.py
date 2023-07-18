@@ -5,6 +5,7 @@ from psycopg2.extensions import AsIs
 
 from talos.db import ContextDatabase, TransactionalDatabase
 from talos.config import Settings
+from talos.logger import logger
 
 
 def get_last_seen_post_id(subreddit: str) -> Union[int, None]:
@@ -23,16 +24,10 @@ def get_last_seen_post_id(subreddit: str) -> Union[int, None]:
     with ContextDatabase() as cdb:
         cdb.execute(
             """
-            SELECT 
-                sp.id AS post_id
-            FROM 
-                %s r
-            JOIN 
-                %s sp ON r.id = sp.rescan_id
-            WHERE 
-                r.subreddit = %s
-            ORDER BY 
-                sp.scraped_at DESC
+            SELECT sp.id AS post_id
+            FROM %s r JOIN %s sp ON r.id = sp.rescan_id
+            WHERE r.subreddit = %s
+            ORDER BY sp.scraped_at DESC
             LIMIT 1;
             """,
             (AsIs(Settings.RESCANS_TABLE), AsIs(
@@ -40,7 +35,10 @@ def get_last_seen_post_id(subreddit: str) -> Union[int, None]:
         )
 
         result = cdb.fetchone()
-        return result[0] if result is not None else None
+        result = result[0] if result is not None else None
+
+        logger.debug(f"Found last_seen_post_id={result}.")
+        return result
 
 
 def create_rescan_entry(tdb: TransactionalDatabase, subreddit: str) -> int:
@@ -59,6 +57,7 @@ def create_rescan_entry(tdb: TransactionalDatabase, subreddit: str) -> int:
         params=(AsIs(Settings.RESCANS_TABLE), subreddit)
     )
 
+    logger.debug("Created rescan entry for subreddit={subreddit}.")
     return tdb.fetchone()[0]
 
 

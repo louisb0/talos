@@ -7,6 +7,7 @@ from talos.components import ProducerComponent
 
 from lib.util import db_helpers, logic_helpers, queue_helpers
 
+
 class RescanProducer(ProducerComponent):
     def __init__(self, retry_attempts, time_between_attempts):
         """
@@ -40,9 +41,6 @@ class RescanProducer(ProducerComponent):
             if logic_helpers.is_rescan_required(subscription):
                 queue_helpers.queue_rescan(subreddit)
                 db_helpers.mark_rescan_queued(subreddit)
-                logger.info(f"A rescan is required for {subreddit}. Queued.")
-            else:
-                logger.info(f"No rescan is required for {subreddit}.")
 
         logger.info(
             f"Pass complete. Sleeping for {Settings.SECONDS_BETWEEN_RESCANS} seconds...\n"

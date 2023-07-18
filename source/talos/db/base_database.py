@@ -33,11 +33,15 @@ class BaseDatabase:
             DatabaseNonFatalException: For non-fatal internal psycopg2 exceptions.
             DatabaseFatalException: For fatal internal psycopg2 exceptions.
         """
+        logger.debug(
+            f"Connecting to the database... ({self.CONFIG['database']})")
         if not self.connection or self.connection.closed:
             self.connection = psycopg2.connect(**self.CONFIG)
-        
+            logger.debug("Connected to the database.")
+
         if not self.cursor or self.cursor.closed:
             self.cursor = self.connection.cursor()
+            logger.debug("Created the cursor for the database.")
 
     @log_reraise_fatal_exception
     @log_reraise_non_fatal_exception
@@ -49,11 +53,15 @@ class BaseDatabase:
             DatabaseNonFatalException: For non-fatal internal psycopg2 exceptions.
             DatabaseFatalException: For fatal internal psycopg2 exceptions.
         """
+        logger.debug(
+            f"Disconnecting from the database... ({self.CONFIG['database']})")
         if self.cursor and not self.cursor.closed:
             self.cursor.close()
+            logger.debug("Closed the cursor for the database.")
 
         if self.connection and not self.connection.closed:
             self.connection.close()
+            logger.debug("Disconnected from the database.")
 
     @log_reraise_fatal_exception
     @log_reraise_non_fatal_exception
@@ -88,7 +96,7 @@ class BaseDatabase:
         self._validate_connection()
 
         return self.cursor.fetchall()
-    
+
     @log_reraise_fatal_exception
     @log_reraise_non_fatal_exception
     def commit(self):
@@ -102,6 +110,7 @@ class BaseDatabase:
         self._validate_connection()
 
         self.connection.commit()
+        logger.debug("Committed changes to the database.")
 
     def _validate_connection(self):
         """

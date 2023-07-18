@@ -6,6 +6,8 @@ from talos.config import Settings
 from talos.api import Requests
 from talos.exceptions.api import *
 from talos.util.decorators import retry_exponential
+from talos.logger import logger
+
 
 class PostCollector:
     def __init__(self, subreddit: str, stopping_post_id: str, requests_obj: Requests):
@@ -29,7 +31,7 @@ class PostCollector:
         if it's a duplicate. If it is, break, if not, add it to the list of unseen.
         """
         unseen_posts = []
-        
+
         while True:
             if not self.unprocessed_posts:
                 self._fetch_posts()
@@ -41,7 +43,7 @@ class PostCollector:
             next_post = self.unprocessed_posts.pop(0)
             if next_post["id"] == self.stopping_post_id:
                 break
-            
+
             unseen_posts.append(next_post)
 
         return unseen_posts
@@ -65,6 +67,11 @@ class PostCollector:
         if self.unprocessed_posts:
             self.after = self.unprocessed_posts[-1]["id"]
 
+        logger.debug(
+            f"Fetched new posts with len(unprocessed_posts)={len(self.unprocessed_posts)}, new_after={self.after}."
+        )
+
+
 class PostResponseFetcher:
     def __init__(self, requests_obj: Requests):
         """
@@ -85,6 +92,7 @@ class PostResponseFetcher:
             Dict: The json response from the post request.
         """
         request_body = self._format_body(subreddit, after)
+        logger.debug(f"Attempting to fetch new posts from {subreddit}...")
 
         return self.requests.send(
             url="https://gql.reddit.com/",
@@ -94,7 +102,7 @@ class PostResponseFetcher:
             with_auth=True
         )
 
-    def _format_body(self, subreddit: str, after:str = None) -> Dict:
+    def _format_body(self, subreddit: str, after: str = None) -> Dict:
         """
         Formats the body for a request.
 

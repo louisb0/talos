@@ -2,7 +2,7 @@ import json
 
 from talos.queuing import RabbitMQ
 from talos.config import Settings
-
+from talos.logger import logger
 
 def queue_rescan(subreddit: str) -> None:
     """
@@ -15,3 +15,5 @@ def queue_rescan(subreddit: str) -> None:
                 "subreddit": subreddit
             })
         )
+    
+    logger.debug(f"Queued rescan for {subreddit}.")
