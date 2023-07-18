@@ -8,7 +8,6 @@ from talos.logger import logger
 
 
 class BaseDatabase:
-    # can assume settings valid per validate() in __init__ of components
     CONFIG = {
         "database": Settings.DB_USER,
         "host": Settings.DB_HOSTNAME,

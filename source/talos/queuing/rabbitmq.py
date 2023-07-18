@@ -85,6 +85,9 @@ class RabbitMQ:
         if self.connection and self.connection.is_open:
             self.connection.close()
 
+        if self.channel and self.channel.is_open:
+            self.channel.close()
+
     @log_reraise_fatal_exception
     @log_reraise_non_fatal_exception
     def publish_message(self, queue_name: str, message: str) -> None:

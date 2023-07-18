@@ -1,5 +1,5 @@
 docs/site
-source/docker-images/**/shared
 source/volumes/
 .env
 **/__pycache__
+tests/talos
