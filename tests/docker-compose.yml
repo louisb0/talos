@@ -13,8 +13,8 @@ services:
     networks:
       - testing-network
     ports:
-      - 5672:5672
-      - 15672:15672
+      - 5677:5677
+      - 15677:15677
 networks:
   testing-network:
     driver: bridge

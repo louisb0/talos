@@ -140,7 +140,7 @@ class TestRabbitMQ(unittest.TestCase):
     def test_e2e(self):
         RabbitMQ.CONFIG = {
             "host": "rabbit",
-            "port": "5672"
+            "port": "5677"
         }
 
         with RabbitMQ(("queue1", "queue2")) as q:
