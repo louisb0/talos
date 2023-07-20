@@ -1,5 +1,6 @@
 from typing import List, Union, Dict
 import json
+from datetime import datetime
 
 from psycopg2.extensions import AsIs
 
@@ -24,14 +25,15 @@ def get_last_seen_post_id(subreddit: str) -> Union[int, None]:
     with ContextDatabase() as cdb:
         cdb.execute(
             """
-            SELECT sp.id AS post_id
-            FROM %s r JOIN %s sp ON r.id = sp.rescan_id
-            WHERE r.subreddit = %s
-            ORDER BY sp.scraped_at DESC
+            SELECT initial_posts.id AS post_id
+            FROM %s
+            JOIN %s ON subreddit_rescans.id = initial_posts.rescan_id
+            WHERE subreddit_rescans.subreddit = %s
+            ORDER BY initial_posts.scraped_at DESC
             LIMIT 1;
             """,
-            (AsIs(Settings.RESCANS_TABLE), AsIs(
-                Settings.SCRAPED_POST_TABLE), subreddit)
+            (AsIs(Settings.SUBREDDIT_RESCAN_TABLE), AsIs(
+                Settings.INITIAL_POSTS_TABLE), subreddit)
         )
 
         result = cdb.fetchone()
@@ -41,7 +43,7 @@ def get_last_seen_post_id(subreddit: str) -> Union[int, None]:
         return result
 
 
-def create_rescan_entry(tdb: TransactionalDatabase, subreddit: str) -> int:
+def create_subreddit_rescan_entry(tdb: TransactionalDatabase, subreddit: str) -> int:
     """
     Creates a rescan entry in the 'rescans' table for the given subreddit.
 
@@ -54,14 +56,14 @@ def create_rescan_entry(tdb: TransactionalDatabase, subreddit: str) -> int:
     """
     tdb.execute(
         query="INSERT INTO %s (subreddit) VALUES (%s) RETURNING id",
-        params=(AsIs(Settings.RESCANS_TABLE), subreddit)
+        params=(AsIs(Settings.SUBREDDIT_RESCAN_TABLE), subreddit)
     )
 
     logger.debug("Created rescan entry for subreddit={subreddit}.")
     return tdb.fetchone()[0]
 
 
-def create_scraped_post_entry(tdb: TransactionalDatabase, post_data: Dict, rescan_id: int):
+def create_initial_post_entry(tdb: TransactionalDatabase, post_data: Dict, rescan_id: int):
     """
     Creates a scraped post entry in the 'scraped_posts' table.
 
@@ -71,13 +73,28 @@ def create_scraped_post_entry(tdb: TransactionalDatabase, post_data: Dict, resca
         rescan_id (int): The ID of the rescan previously created in the transaction.
     """
     tdb.execute(
-        query="INSERT INTO %s (id, post_data, rescan_id) VALUES (%s, %s, %s)",
-        params=(AsIs(Settings.SCRAPED_POST_TABLE),
+        query="INSERT INTO %s (id, metadata, rescan_id) VALUES (%s, %s, %s)",
+        params=(AsIs(Settings.INITIAL_POSTS_TABLE),
                 post_data["id"], json.dumps(post_data), rescan_id)
     )
 
 
-def mark_rescan_processed(tdb: TransactionalDatabase, subreddit: str):
+def create_post_rescan_entry(tdb: TransactionalDatabase, scheduled_start_at: datetime, post_id: str):
+    """
+    Creates an post rescan entry in the 'post_rescans' table.
+
+    Args:
+        tdb (TransactionalDatabase): The database instance with an active transaction to write data.
+        scheduled_start_at (datetime): The time for which the post should be rescanned.
+        post_id (str): The ID of the post to be rescanned.
+    """
+    tdb.execute(
+        query="INSERT INTO %s (scheduled_start_at, post_id) VALUES (%s, %s)",
+        params=(AsIs(Settings.POST_RESCAN_TABLE), scheduled_start_at, post_id)
+    )
+
+
+def mark_subreddit_rescan_processed(tdb: TransactionalDatabase, subreddit: str):
     """
     Marks the rescan for the given subreddit as processed, allowing for further rescans to be requeued.
 

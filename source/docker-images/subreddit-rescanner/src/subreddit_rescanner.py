@@ -8,24 +8,21 @@ from talos.db import TransactionalDatabase
 from talos.api import Requests
 
 from lib.api import PostCollector
-from lib.util import db_helpers
+from lib.util import db_helpers, time_helpers
 
 
-class Rescanner(ConsumerComponent):
+class SubredditRescanner(ConsumerComponent):
     """
-    The purpose of the rescanner is to consume from the rescan messages produced
-    by rescan-producer, containing the subreddit.
+    The purpose of the SubredditRescanner is to consume from the subreddit-rescan
+    messages produced by rescan-producer, containing the subreddit to rescan.
 
     Then, it gets the newest, unseen, posts from this subreddit. It writes these
-    to the scraped_posts table, updates the last scanned time on the subscription,
-    and creates an entry for the rescan (which the post references as a foreign key).
-
-    TODO: Queue and schedule comment scrapes for the seen posts.
+    to the INITIAL_POSTS_TABLE, schedules a post rescan in POST_RESCANS_TABLE.
     """
 
     def __init__(self, retry_attempts: int, time_between_attempts: int, producing_queue: str):
         """
-        Initializes the Rescanner object.
+        Initializes the SubredditRescanner object.
 
         Args:
             retry_attempts (int): The number of retry attempts for handling errors.
@@ -44,11 +41,12 @@ class Rescanner(ConsumerComponent):
 
     def _handle_one_pass(self, message: str) -> None:
         """
-        Handles one pass of the run loop, collecting the newest posts and storing them
-        on disk and their references in the database.
+        Receives a rescan message from SUBREDDIT_RESCAN_QUEUE, containing the subreddit.
+        All of the newest posts are fetched and stored, as well as their associated post
+        specific rescans (fetching comments and updated meta data after engagement develops).
 
         Args:
-            message (str): The message containing the subreddit from which to scrape data.
+            message (str): The message containing the subreddit from which to fetch posts.
         """
         subreddit = json.loads(message)["subreddit"]
         logger.info(
@@ -60,27 +58,35 @@ class Rescanner(ConsumerComponent):
             stopping_post_id=db_helpers.get_last_seen_post_id(subreddit),
             requests_obj=self.requests_obj
         ).get_unseen_posts()
+
         logger.info(
             f"{len(posts)} unseen posts found. Preparing to write to DB..."
         )
 
         with TransactionalDatabase() as tdb:
-            rescan_id = db_helpers.create_rescan_entry(tdb, subreddit)
+            rescan_id = db_helpers.create_subreddit_rescan_entry(
+                tdb, subreddit)
 
             for post in posts:
-                db_helpers.create_scraped_post_entry(
+                db_helpers.create_initial_post_entry(
                     tdb=tdb,
                     post_data=post,
                     rescan_id=rescan_id,
                 )
+                db_helpers.create_post_rescan_entry(
+                    tdb=tdb,
+                    scheduled_start_at=time_helpers.get_scheduled_scrape_time(
+                        post),
+                    post_id=post["id"]
+                )
+            db_helpers.mark_subreddit_rescan_processed(tdb, subreddit)
 
-            db_helpers.mark_rescan_processed(tdb, subreddit)
-            
-            logger.info(
-                f"Completed rescan (id: {rescan_id}). {len(posts)} posts added to the database.\n"
-            )
+        logger.info(
+            f"Completed rescan (id: {rescan_id}). {len(posts)} posts added to the database.\n"
+        )
 
     def run(self):
+        # Persistent object for token rotation.
         self.requests_obj = Requests()
 
         super().run()

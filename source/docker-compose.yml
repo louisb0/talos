@@ -34,14 +34,23 @@ services:
     depends_on:
       - database
       - rabbitmq
-  rescanner:
+  subreddit-rescanner:
     build:
       context: .
-      dockerfile: docker-images/rescanner/Dockerfile
+      dockerfile: docker-images/subreddit-rescanner/Dockerfile
     networks:
       - talos-network
-    volumes:
-      - ./volumes/responses/posts:/app/responses
+    env_file:
+      - .env
+    depends_on:
+      - database
+      - rabbitmq
+  post-rescanner:
+    build:
+      context: .
+      dockerfile: docker-images/post-rescanner/Dockerfile
+    networks:
+      - talos-network
     env_file:
       - .env
     depends_on:

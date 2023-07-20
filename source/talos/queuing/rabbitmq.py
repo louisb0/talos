@@ -65,16 +65,15 @@ class RabbitMQ:
             RabbitMQNonFatalException: For non-fatal internal AMPQ exceptions.
             RabbitMQFatalException: For fatal internal AMPQ exceptions.
         """
-        logger.debug("Connecting to RabbitMQ...")
         if not self.connection or self.connection.is_closed:
             self.connection = pika.BlockingConnection(
                 pika.ConnectionParameters(**self.CONFIG)
             )
-            logger.debug("Connected to RabbitMQ.")
 
         if not self.channel or self.channel.is_closed:
             self.channel = self.connection.channel()
-            logger.debug("Opened channel to RabbitMQ.")
+
+        logger.debug("Connected to RabbitMQ.")
 
         if self.connection.is_open and self.channel.is_open:
             self._declare_exchange()
@@ -89,14 +88,13 @@ class RabbitMQ:
         Raises:
             RabbitMQFatalException: If any exception occurs during disconnection.
         """
-        logger.debug("Disconnecting from RabbitMQ...")
         if self.channel and self.channel.is_open:
             self.channel.close()
-            logger.debug("Closed channel to RabbitMQ.")
 
         if self.connection and self.connection.is_open:
             self.connection.close()
-            logger.debug("Disconnected from RabbitMQ.")
+
+        logger.debug("Disconnected from RabbitMQ.")
 
     @log_reraise_fatal_exception
     @log_reraise_non_fatal_exception

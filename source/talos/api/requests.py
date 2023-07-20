@@ -70,12 +70,32 @@ class Requests:
 
         return response if not is_json else response.json()
 
+    def send_from_message(self, message: dict) -> dict:
+        """
+        The interface for the post-scraper component, used to execute the queued
+        API requests. 
+
+        Args:
+            message (dict): The API request object as part of the RabbitMQ message.
+        """
+        url = message["url"]
+        method = message["method"]
+        body = message.get("body")
+
+        return self.send(
+            url=url,
+            type=method,
+            body=body,
+            is_json=True,
+            with_auth=True
+        )
+
     @log_reraise_fatal_exception
     @log_reraise_non_fatal_exception
     def _get(self, url: str, headers: dict = None) -> requests.Response:
         """
-        Sends a GET request using the requests library.
-        Has it's own function for the purpose of reraising custom exceptions.
+        Sends a GET request using the requests library. Has it's own function for
+        the purpose of reraising custom exceptions.
 
         Args:
             url (str): The URL to send a GET request.
@@ -95,8 +115,8 @@ class Requests:
     @log_reraise_non_fatal_exception
     def _post(self, url: str, body: dict, headers: dict = None) -> requests.Response:
         """
-        Sends a POST request using the requests library.
-        Has it's own function for the purpose of reraising custom exceptions.
+        Sends a POST request using the requests library. Has it's own function for
+        the purpose of reraising custom exceptions.
 
         Args:
             url (str): The URL to send a POST request.
@@ -118,8 +138,8 @@ class Requests:
 
     def _get_token(self) -> str:
         """
-        Compares the requests made with the requests per token setting
-        to either generate a new token, or return the current.
+        Compares the requests made with the requests per token setting to either
+        generate a new token, or return the current.
 
         Returns:
             str: The Bearer authorization token found.
@@ -132,8 +152,8 @@ class Requests:
     @retry_exponential(minimum_wait_time=1, maximum_wait_time=30, exception_types=(APINonFatalException,))
     def _generate_token(self) -> str:
         """
-        Fetches a token from Reddit by parsing the homepage HTML.
-        Sets the token in self._current_token.
+        Fetches a token from Reddit by parsing the homepage HTML. Sets the token
+        in self._current_token.
 
         Raises:
             TokenNotFound (APINonFatalException): If no token is found, a non-fatal
@@ -156,8 +176,7 @@ class Requests:
 
     def _generate_headers(self) -> Dict:
         """
-        Generates a token and creates headers with the authorization and
-        user agent.
+        Generates a token and creates headers with the authorization and user agent.
 
         Returns:
             Dict: The header object with a Bearer token and user agent. 

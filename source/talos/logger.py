@@ -1,7 +1,7 @@
 import logging
 
 logging.basicConfig(level=logging.INFO,
-                    format='[%(levelname)s] [%(filename)s:%(lineno)d] [%(asctime)s]] - %(message)s')
+                    format='[%(levelname)s] [%(filename)s:%(lineno)d] [%(asctime)s] - %(message)s')
 
 logging.getLogger("pika").setLevel(logging.WARNING)
 logging.getLogger("requests").setLevel(logging.WARNING)
