@@ -1,6 +1,6 @@
 
 import base64
-from typing import List, Dict
+from typing import List, Dict, Tuple
 
 from talos.config import Settings
 from talos.api import Requests
@@ -10,9 +10,9 @@ from talos.logger import logger
 
 
 class PostCollector:
-    def __init__(self, subreddit: str, stopping_post_id: str, requests_obj: Requests):
+    def __init__(self, subreddit: str, stopping_post_ids: List[Tuple[str]], requests_obj: Requests):
         self.subreddit: str = subreddit
-        self.stopping_post_id: str = stopping_post_id
+        self.stopping_post_ids: List[Tuple[str]] = stopping_post_ids
 
         self.response_fetcher = PostResponseFetcher(requests_obj)
         self.unprocessed_posts: List = []
@@ -39,9 +39,9 @@ class PostCollector:
             # if still no posts after fetching, we reached the end
             if not self.unprocessed_posts:
                 break
-
+            
             next_post = self.unprocessed_posts.pop(0)
-            if next_post["id"] == self.stopping_post_id:
+            if any(next_post["id"] in tup for tup in self.stopping_post_ids):
                 break
 
             unseen_posts.append(next_post)
@@ -67,8 +67,8 @@ class PostCollector:
         if self.unprocessed_posts:
             self.after = self.unprocessed_posts[-1]["id"]
 
-        logger.debug(
-            f"Fetched new posts with len(unprocessed_posts)={len(self.unprocessed_posts)}, new_after={self.after}."
+        logger.info(
+            f"Fetched {len(self.unprocessed_posts)} posts, new_after={self.after}."
         )
 
 
@@ -92,7 +92,6 @@ class PostResponseFetcher:
             Dict: The json response from the post request.
         """
         request_body = self._format_body(subreddit, after)
-        logger.debug(f"Attempting to fetch new posts from {subreddit}...")
 
         return self.requests.send(
             url="https://gql.reddit.com/",

@@ -1,4 +1,4 @@
-from typing import List, Union, Dict
+from typing import List, Tuple, Union, Dict
 import json
 from datetime import datetime
 
@@ -9,15 +9,15 @@ from talos.config import Settings
 from talos.logger import logger
 
 
-def get_last_seen_post_id(subreddit: str) -> Union[int, None]:
+def get_last_seen_post_ids(subreddit: str) -> Union[List[Tuple[str]], None]:
     """
-    Retrieves the ID of the last seen post in the given subreddit.
+    Retrieves the IDs of the last seen post in the given subreddit.
 
     Args:
         subreddit (str): The subreddit to query.
 
     Returns:
-        Union[int, None]: The ID of the last seen post, or None if no posts were found.
+        Union[Tuple, None]: A tuple of IDs of the last seen posts, or None if no posts were found.
     """
 
     # use context db so we don't have to hold a transaction open
@@ -25,22 +25,22 @@ def get_last_seen_post_id(subreddit: str) -> Union[int, None]:
     with ContextDatabase() as cdb:
         cdb.execute(
             """
+            WITH latest_rescan AS (
+                SELECT id AS rescan_id
+                FROM %s
+                WHERE subreddit = %s
+                ORDER BY ran_at DESC
+                LIMIT 1
+            )
             SELECT initial_posts.id AS post_id
-            FROM %s
-            JOIN %s ON subreddit_rescans.id = initial_posts.rescan_id
-            WHERE subreddit_rescans.subreddit = %s
-            ORDER BY initial_posts.scraped_at DESC
-            LIMIT 1;
+            FROM latest_rescan
+            JOIN %s ON latest_rescan.rescan_id = initial_posts.rescan_id;
             """,
-            (AsIs(Settings.SUBREDDIT_RESCAN_TABLE), AsIs(
-                Settings.INITIAL_POSTS_TABLE), subreddit)
+            (AsIs(Settings.SUBREDDIT_RESCAN_TABLE), subreddit, AsIs(
+                Settings.INITIAL_POSTS_TABLE))
         )
 
-        result = cdb.fetchone()
-        result = result[0] if result is not None else None
-
-        logger.debug(f"Found last_seen_post_id={result}.")
-        return result
+        return cdb.fetchall()
 
 
 def create_subreddit_rescan_entry(tdb: TransactionalDatabase, subreddit: str) -> int:
@@ -59,7 +59,6 @@ def create_subreddit_rescan_entry(tdb: TransactionalDatabase, subreddit: str) ->
         params=(AsIs(Settings.SUBREDDIT_RESCAN_TABLE), subreddit)
     )
 
-    logger.debug("Created rescan entry for subreddit={subreddit}.")
     return tdb.fetchone()[0]
 
 

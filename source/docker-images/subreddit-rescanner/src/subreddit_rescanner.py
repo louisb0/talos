@@ -55,13 +55,9 @@ class SubredditRescanner(ConsumerComponent):
 
         posts = PostCollector(
             subreddit,
-            stopping_post_id=db_helpers.get_last_seen_post_id(subreddit),
+            stopping_post_ids=db_helpers.get_last_seen_post_ids(subreddit),
             requests_obj=self.requests_obj
         ).get_unseen_posts()
-
-        logger.info(
-            f"{len(posts)} unseen posts found. Preparing to write to DB..."
-        )
 
         with TransactionalDatabase() as tdb:
             rescan_id = db_helpers.create_subreddit_rescan_entry(
