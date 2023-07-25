@@ -3,7 +3,7 @@ from typing import Dict
 
 from talos.queuing import RabbitMQ
 from talos.config import Settings
-from talos.logger import logger
+
 
 def queue_subreddit_rescan(subreddit: str) -> None:
     """
@@ -17,8 +17,7 @@ def queue_subreddit_rescan(subreddit: str) -> None:
                 "subreddit": subreddit
             })
         )
-    
-    logger.debug(f"Queued subreddit rescan for {subreddit}.")
+
 
 def queue_post_rescan(rabbitmq: RabbitMQ, api_request: Dict, post_id: str, post_rescan_id: int):
     """
@@ -34,5 +33,3 @@ def queue_post_rescan(rabbitmq: RabbitMQ, api_request: Dict, post_id: str, post_
             "api_request": api_request
         })
     )
-    
-    logger.debug(f"Queued post rescan for {post_id}.")

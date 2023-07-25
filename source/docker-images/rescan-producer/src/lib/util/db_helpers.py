@@ -56,10 +56,7 @@ def fetch_due_post_rescans() -> Tuple[str]:
             auto_commit=False
         )
 
-        due_post_rescans = db.fetchall()
-        logger.debug(f"Found due post rescans={due_post_rescans}.")
-
-        return due_post_rescans
+        return db.fetchall()
 
 
 def mark_post_rescan_queued(cdb: ContextDatabase, post_rescan_id: int) -> None:
@@ -75,5 +72,3 @@ def mark_post_rescan_queued(cdb: ContextDatabase, post_rescan_id: int) -> None:
         params=(AsIs(Settings.POST_RESCAN_TABLE), post_rescan_id),
         auto_commit=False
     )
-
-    logger.debug(f"Updated last_seen for post_rescan_id={post_rescan_id}.")

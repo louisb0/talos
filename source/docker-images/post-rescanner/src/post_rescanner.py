@@ -99,7 +99,7 @@ class PostRescanner(ConsumerComponent):
             )
 
         logger.info(
-            f"Finished. rawComments={len(raw_comments)}, moreComments={len(more_comments)}, continueThreads={len(continue_threads)}."
+            f"Finished. rawComments={len(raw_comments)}, moreComments={len(more_comments)}, continueThreads={len(continue_threads)}.\n"
         )
         time.sleep(1)
 

@@ -58,6 +58,9 @@ class RescanProducer(ProducerComponent):
             if logic_helpers.is_rescan_required(subscription):
                 queue_helpers.queue_subreddit_rescan(subreddit)
                 db_helpers.mark_subscription_queued(subreddit)
+                logger.info(f"Queued rescan for subreddit={subreddit}.")
+            else:
+                logger.info(f"No rescan required for subreddit={subreddit}.")
 
     def produce_post_rescans(self) -> None:
         """
@@ -66,8 +69,8 @@ class RescanProducer(ProducerComponent):
         contains updated post meta data, as well as comments.
         """
         logger.info("Checking for due post rescans...")
-        due_post_rescans = db_helpers.fetch_due_post_rescans()
 
+        due_post_rescans = db_helpers.fetch_due_post_rescans()
         with RabbitMQ(queues=(Settings.POST_RESCAN_QUEUE,)) as rabbitmq:
             with ContextDatabase() as cdb:
                 for due_post_rescan in due_post_rescans:
@@ -82,13 +85,14 @@ class RescanProducer(ProducerComponent):
                         post_id=post_id,
                         post_rescan_id=post_rescan_id
                     )
-
                     db_helpers.mark_post_rescan_queued(
                         cdb=cdb,
                         post_rescan_id=post_rescan_id
                     )
                 
                 cdb.commit()
+
+        logger.info(f"Queued {len(due_post_rescans)} post rescans.")
 
     def _handle_one_pass(self):
         """
