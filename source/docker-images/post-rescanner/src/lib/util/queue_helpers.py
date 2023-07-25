@@ -22,7 +22,7 @@ def queue_more_comments_scan(rabbitmq: RabbitMQ, more_comments: List[dict], post
                 "post_rescans_id": post_rescan_id,
                 "type": "more",
                 "api_request": {
-                    "url": f"https://gateway.reddit.com/desktopapi/v1/morecomments/{comment['id']}",
+                    "url": f"https://gateway.reddit.com/desktopapi/v1/morecomments/{comment['postId']}",
                     "method": 1,  # Requests.TYPE_POST,
                     "body": {
                         "token": comment["token"]
