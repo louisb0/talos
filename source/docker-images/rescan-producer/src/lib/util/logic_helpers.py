@@ -27,5 +27,5 @@ def is_rescan_required(subscription: Tuple[str]) -> bool:
         timedelta(seconds=time_between_scans)
 
     is_required = datetime.now(timezone.utc) >= next_scan_time
-    logger.debug(f"Subreddit {subscription} rescan_required={is_required}.")
+    logger.info(f"Subreddit {subscription[0]} rescan_required={is_required}.")
     return is_required
