@@ -33,7 +33,7 @@ class Settings:
     USER_AGENT = os.getenv("USER_AGENT")
 
     COMPONENT_NAME = os.getenv("TALOS_COMPONENT_NAME")
-    IS_DEV = bool(os.getenv("IS_DEV"))
+    IS_DEV = os.getenv("IS_DEV").lower() in ("1", "true", "t")
 
     @classmethod
     def validate(cls):
