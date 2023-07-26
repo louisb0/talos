@@ -16,6 +16,7 @@ class Settings:
 
     STARTUP_SLEEP_TIME_SECS = int(os.getenv("STARTUP_SLEEP_TIME_SECS"))
     RESCAN_PRODUCER_SLEEP_TIME_SECS = int(os.getenv("RESCAN_PRODUCER_SLEEP_TIME_SECS"))
+    TIME_BETWEEN_POST_RESCANS = int(os.getenv("TIME_BETWEEN_POST_RESCANS"))
 
     SUBSCRIPTIONS_TABLE = os.getenv("SUBSCRIPTIONS_TABLE")
     SUBREDDIT_RESCAN_TABLE = os.getenv("SUBREDDIT_RESCAN_TABLE")
@@ -32,6 +33,7 @@ class Settings:
     USER_AGENT = os.getenv("USER_AGENT")
 
     COMPONENT_NAME = os.getenv("TALOS_COMPONENT_NAME")
+    IS_DEV = bool(os.getenv("IS_DEV"))
 
     @classmethod
     def validate(cls):

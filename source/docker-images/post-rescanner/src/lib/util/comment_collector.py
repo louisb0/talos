@@ -1,6 +1,9 @@
+import traceback
 from typing import List, Union, Tuple
 
 from talos.logger import logger
+from talos.exceptions.base import NonFatalException
+from talos.config import Settings
 
 
 class CommentCollector:
@@ -56,11 +59,24 @@ class CommentIterator:
         Args:
             api_response (str): The API response containing comments.
         """
-        self.comment_sections = {
-            "rawComment": api_response["comments"],
-            "moreComment": api_response["moreComments"],
-            "continueThread": api_response["continueThreads"],
-        }
+        try:
+            self.comment_sections = {
+                "rawComment": api_response["comments"],
+                "moreComment": api_response["moreComments"],
+                "continueThread": api_response["continueThreads"],
+            }
+        except KeyError as ke:
+            if Settings.IS_DEV:
+                logger.exception("KeyError in CommentIterator.")
+            else:
+                logger.error("KeyError in CommentIterator.", extra={
+                    "json_fields": {
+                        "json_fields": {
+                            "traceback": traceback.format_exc()
+                        }
+                    }
+                })
+            raise NonFatalException() from ke
 
         self.stack = self._setup_stack()
 
