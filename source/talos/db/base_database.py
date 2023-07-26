@@ -39,7 +39,7 @@ class BaseDatabase:
         if not self.cursor or self.cursor.closed:
             self.cursor = self.connection.cursor()
 
-        logger.info(f"Connected to database ({self.CONFIG['database']}).")
+        logger.debug(f"Connected to database ({self.CONFIG['database']}).")
 
     @log_reraise_fatal_exception
     @log_reraise_non_fatal_exception
@@ -57,7 +57,7 @@ class BaseDatabase:
         if self.connection and not self.connection.closed:
             self.connection.close()
 
-        logger.info(f"Disconnected from database ({self.CONFIG['database']}).")
+        logger.debug(f"Disconnected from database ({self.CONFIG['database']}).")
 
     @log_reraise_fatal_exception
     @log_reraise_non_fatal_exception
@@ -106,7 +106,7 @@ class BaseDatabase:
         self._validate_connection()
 
         self.connection.commit()
-        logger.info("Committed changes to the database.")
+        logger.debug("Committed changes to the database.")
 
     def _validate_connection(self):
         """
