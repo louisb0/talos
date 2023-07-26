@@ -15,12 +15,12 @@ NON_FATAL_EXCEPTIONS = (
     requests.exceptions.ContentDecodingError,
     requests.exceptions.RetryError,
     requests.exceptions.SSLError,
+    requests.exceptions.InvalidJSONError,
+    requests.exceptions.JSONDecodeError,
 )
 
 FATAL_EXCEPTIONS = (
     requests.exceptions.RequestException,
-    requests.exceptions.InvalidJSONError,
-    requests.exceptions.JSONDecodeError,
     requests.exceptions.URLRequired,
     requests.exceptions.MissingSchema,
     requests.exceptions.InvalidSchema,
