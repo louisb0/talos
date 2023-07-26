@@ -5,7 +5,7 @@ from post_rescanner import PostRescanner
 if __name__ == "__main__":
     post_rescanner = PostRescanner(
         retry_attempts=3,
-        time_between_attempts=5,
+        time_between_attempts=10,
         producing_queue=Settings.POST_RESCAN_QUEUE
     )
 
