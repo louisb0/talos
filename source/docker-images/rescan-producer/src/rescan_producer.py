@@ -2,10 +2,10 @@ import time
 import sys
 
 from talos.config import Settings
-from talos.logger import logger
 from talos.components import ProducerComponent
 from talos.queuing import RabbitMQ
 from talos.db import ContextDatabase
+from talos.logger import logger
 
 from lib.util import db_helpers, logic_helpers, queue_helpers
 
@@ -41,7 +41,7 @@ class RescanProducer(ProducerComponent):
         """
         Handles critical errors which could not be retried.
         """
-        logger.critical("handle_critical_error() hit. Exiting...")
+        logger.alert("handle_critical_error() hit. Exiting...")
         sys.exit(1)
 
     def produce_subreddit_rescans(self):
@@ -58,9 +58,8 @@ class RescanProducer(ProducerComponent):
             if logic_helpers.is_rescan_required(subscription):
                 queue_helpers.queue_subreddit_rescan(subreddit)
                 db_helpers.mark_subscription_queued(subreddit)
-                logger.info(f"Queued rescan for subreddit={subreddit}.")
-            else:
-                logger.info(f"No rescan required for subreddit={subreddit}.")
+
+                logger.info(f"Queued rescan for {subreddit}.")
 
     def produce_post_rescans(self) -> None:
         """
@@ -71,11 +70,14 @@ class RescanProducer(ProducerComponent):
         logger.info("Checking for due post rescans...")
 
         due_post_rescans = db_helpers.fetch_due_post_rescans()
+        if not due_post_rescans:
+            return
+
         with RabbitMQ(queues=(Settings.POST_RESCAN_QUEUE,)) as rabbitmq:
             with ContextDatabase() as cdb:
                 for due_post_rescan in due_post_rescans:
                     post_rescan_id, _, _, _, _, post_id = due_post_rescan
-                    
+
                     queue_helpers.queue_post_rescan(
                         rabbitmq=rabbitmq,
                         api_request={
@@ -89,7 +91,7 @@ class RescanProducer(ProducerComponent):
                         cdb=cdb,
                         post_rescan_id=post_rescan_id
                     )
-                
+
                 cdb.commit()
 
         logger.info(f"Queued {len(due_post_rescans)} post rescans.")
@@ -98,12 +100,13 @@ class RescanProducer(ProducerComponent):
         """
         Handles one pass of the run loop, reading from subscriptions and scheduling rescans.
         """
+        logger.notice("Beginning one pass.")
+
         self.produce_subreddit_rescans()
         self.produce_post_rescans()
 
-        logger.info(
-            f"Pass complete. Sleeping for {Settings.RESCAN_PRODUCER_SLEEP_TIME_SECS} seconds...\n"
-        )
+        logger.notice(
+            f"Pass complete. Sleeping for {Settings.RESCAN_PRODUCER_SLEEP_TIME_SECS} seconds.")
         time.sleep(Settings.RESCAN_PRODUCER_SLEEP_TIME_SECS)
 
     def run(self):

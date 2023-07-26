@@ -3,5 +3,6 @@ WORKDIR /app
 COPY ./docker-images/post-rescanner/src .
 COPY ./docker-images/post-rescanner/requirements.txt .
 COPY ./talos ./talos
+COPY ./cred.json .
 RUN pip install --no-cache-dir -r requirements.txt
 CMD ["python", "./main.py"]

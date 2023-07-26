@@ -20,8 +20,7 @@ def fetch_subscriptions() -> Tuple[str]:
         )
 
         subscriptions = db.fetchall()
-        logger.debug(f"Found subscriptions={subscriptions}.")
-
+        logger.debug(f"Found subscriptions: {subscriptions}.")
         return subscriptions
 
 
@@ -39,10 +38,6 @@ def mark_subscription_queued(subreddit: str) -> None:
             auto_commit=True
         )
 
-        logger.debug(
-            f"Marked the rescan for {subreddit} subscription as queued."
-        )
-
 
 def fetch_due_post_rescans() -> Tuple[str]:
     """
@@ -56,7 +51,9 @@ def fetch_due_post_rescans() -> Tuple[str]:
             auto_commit=False
         )
 
-        return db.fetchall()
+        post_rescans = db.fetchall()
+        logger.debug(f"Found post rescans: {post_rescans}")
+        return post_rescans
 
 
 def mark_post_rescan_queued(cdb: ContextDatabase, post_rescan_id: int) -> None:

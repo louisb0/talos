@@ -3,5 +3,6 @@ WORKDIR /app
 COPY ./docker-images/subreddit-rescanner/src .
 COPY ./docker-images/subreddit-rescanner/requirements.txt .
 COPY ./talos ./talos
+COPY ./cred.json .
 RUN pip install --no-cache-dir -r requirements.txt
 CMD ["python", "./main.py"]

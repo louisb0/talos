@@ -4,6 +4,7 @@ from tenacity import retry, stop_after_attempt, stop_after_delay, wait_fixed, wa
 
 from talos.logger import logger
 
+import traceback
 
 def log_and_reraise_exception(to_catch: Tuple[Type[BaseException]], should_raise: Exception, to_exclude: Tuple[Type[BaseException]] = None):
     """
@@ -25,13 +26,16 @@ def log_and_reraise_exception(to_catch: Tuple[Type[BaseException]], should_raise
                 if to_exclude and isinstance(ex, to_exclude):
                     raise
 
-                logger.exception(
-                    f"An error occurred in {func.__name__}()."
-                )
+                logger.error(f"An error occurred in {func.__name__}(): {str(ex)}", extra={
+                    "json_fields": {
+                        "traceback": traceback.format_exc()
+                    }
+                })
                 raise should_raise() from ex
         return wrapper
 
     return decorator
+
 
 def retry_fixed(retry_attempts: int, time_between_attempts: int, exception_types: Tuple[Type[BaseException]] = (Exception,)) -> retry:
     """
@@ -43,9 +47,7 @@ def retry_fixed(retry_attempts: int, time_between_attempts: int, exception_types
         exception_types (Tuple[Type[BaseException]]): The exceptions which should be retried.
     """
     def log_retry(retry_state):
-        logger.info(
-            f"Retrying with fixed duration: {retry_state}."
-        )
+        logger.notice(f"Retrying with fixed duration: {retry_state}.")
 
     return retry(
         stop=stop_after_attempt(retry_attempts),
@@ -54,6 +56,7 @@ def retry_fixed(retry_attempts: int, time_between_attempts: int, exception_types
         before_sleep=log_retry,
         reraise=True
     )
+
 
 def retry_exponential(minimum_wait_time: int, maximum_wait_time: int, exception_types: Tuple[Type[BaseException]] = (Exception,)) -> retry:
     """
@@ -66,9 +69,7 @@ def retry_exponential(minimum_wait_time: int, maximum_wait_time: int, exception_
         exception_types (Tuple[Type[BaseException]]): The exceptions which should be retried.
     """
     def log_retry(retry_state):
-        logger.info(
-            f"Retrying with exponential duration: {retry_state}."
-        )
+        logger.notice(f"Retrying with exponential duration: {retry_state}.")
 
     return retry(
         stop=stop_after_delay(3 * 60),

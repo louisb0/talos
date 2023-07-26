@@ -30,7 +30,8 @@ class Settings:
     MAX_POSTS_PER_REQUEST = int(os.getenv("MAX_POSTS_PER_REQUEST"))
     REQUESTS_PER_TOKEN = int(os.getenv("REQUESTS_PER_TOKEN"))
     USER_AGENT = os.getenv("USER_AGENT")
-    RESPONSE_STORAGE_PATH = os.getenv("RESPONSE_STORAGE_PATH")
+
+    COMPONENT_NAME = os.getenv("TALOS_COMPONENT_NAME")
 
     @classmethod
     def validate(cls):

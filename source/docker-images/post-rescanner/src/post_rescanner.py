@@ -28,7 +28,7 @@ class PostRescanner(ConsumerComponent):
         """
         Handles critical errors which could not be retried.
         """
-        logger.critical("handle_critical_error() hit. Exiting...")
+        logger.alert("handle_critical_error() hit. Exiting...")
         sys.exit(1)
 
     def _handle_one_pass(self, message: str) -> None:
@@ -50,7 +50,7 @@ class PostRescanner(ConsumerComponent):
         comment data. Within the base layer data is the 'aged' post meta data, which is
         inserted into UPDATED_POSTS_TABLE, as well as unnested comments. Any nested comments
         present in the comment section is then requeued again into POST_RESCAN_QUEUE.
-        
+
         Args:
             message (str): The message containing the information required to rescan.
         """
@@ -82,7 +82,7 @@ class PostRescanner(ConsumerComponent):
             comments=raw_comments,
             post_rescan_id=post_rescan_id
         )
-        
+
         db_helpers.update_post_rescan_seen(post_rescan_id)
 
         with RabbitMQ((Settings.POST_RESCAN_QUEUE,)) as rabbitmq:
@@ -98,9 +98,7 @@ class PostRescanner(ConsumerComponent):
                 post_rescan_id=post_rescan_id
             )
 
-        logger.info(
-            f"Finished. rawComments={len(raw_comments)}, moreComments={len(more_comments)}, continueThreads={len(continue_threads)}.\n"
-        )
+        logger.info(f"Post rescan processed. Sleeping for 1s...")
         time.sleep(1)
 
     def run(self):

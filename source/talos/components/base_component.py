@@ -20,7 +20,7 @@ class BaseComponent(ABC):
         self.retry_attempts = retry_attempts
         self.time_between_attempts = time_between_attempts
 
-    def route_error(self, error: BaseException):
+    def route_error(self, error: Exception):
         """
         Routes an error to a handle when propagated up from a lower-level function or method.
         Reached when exceeding NonFatalException retries, or in case of a FatalException.
@@ -29,7 +29,7 @@ class BaseComponent(ABC):
             error: The exception instance that has been raised.
         """
         if not isinstance(error, (NonFatalException, FatalException)):
-            logger.exception("An unknown error occurred.")
+            logger.error("An unknown error occur occured")
 
         self.handle_critical_error()
 
@@ -74,8 +74,6 @@ class BaseComponent(ABC):
         Starts the component after a delay defined by Settings.STARTUP_SLEEP_TIME_SECS.
         Subclasses call this implementation on start to reduce boiler plate.
         """
-        logger.info(
-            f"{type(self).__name__} starting. Sleeping for {Settings.STARTUP_SLEEP_TIME_SECS}s while containers start up...\n"
-        )
+        logger.notice(f"{type(self).__name__} starting. Sleeping for {Settings.STARTUP_SLEEP_TIME_SECS}s while containers start up...")
 
         time.sleep(Settings.STARTUP_SLEEP_TIME_SECS)

@@ -36,7 +36,7 @@ class SubredditRescanner(ConsumerComponent):
         """
         Handles critical errors which could not be retried.
         """
-        logger.critical("handle_critical_error() hit. Exiting...")
+        logger.alert("handle_critical_error() hit. Exiting...")
         sys.exit(1)
 
     def _handle_one_pass(self, message: str) -> None:

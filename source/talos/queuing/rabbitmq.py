@@ -157,15 +157,14 @@ class RabbitMQ:
 
         def callback(ch, method, properties, body):
             try:
+                logger.debug(f"Received message {body}.")
                 callback_function(body)
                 ch.basic_ack(delivery_tag=method.delivery_tag)
             except Exception as e:
                 ch.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
                 raise e
 
-        logger.debug(
-            f"Attempting to begin consuming from queue={queue_name} callback_function={callback_function}."
-        )
+        logger.debug(f"Attempting to begin consuming from queue={queue_name} callback_function={callback_function}.")
 
         self.channel.basic_qos(prefetch_count=1)
         self.channel.basic_consume(
@@ -197,9 +196,7 @@ class RabbitMQ:
         method_frame, header_frame, body = self.channel.basic_get(
             queue=queue_name
         )
-        logger.debug(
-            f"Consumed one message from queue={queue_name} message={body}."
-        )
+        logger.debug(f"Consumed one message from queue={queue_name} message={body}.")
 
         if method_frame:
             self.channel.basic_ack(method_frame.delivery_tag)
@@ -264,9 +261,7 @@ class RabbitMQ:
             queue=queue_name,
             routing_key=queue_name
         )
-        logger.debug(
-            f"Declared queue={queue_name}, bound to exhange={Settings.RABBITMQ_EXCHANGE_NAME}."
-        )
+        logger.debug(f"Declared queue={queue_name}, bound to exhange={Settings.RABBITMQ_EXCHANGE_NAME}.")
 
     def _validate_connection(self):
         """

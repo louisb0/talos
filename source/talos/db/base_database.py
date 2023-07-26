@@ -39,9 +39,7 @@ class BaseDatabase:
         if not self.cursor or self.cursor.closed:
             self.cursor = self.connection.cursor()
 
-        logger.debug(
-            f"Connected to the database. ({self.CONFIG['database']})"
-        )
+        logger.info(f"Connected to database ({self.CONFIG['database']}).")
 
     @log_reraise_fatal_exception
     @log_reraise_non_fatal_exception
@@ -59,9 +57,7 @@ class BaseDatabase:
         if self.connection and not self.connection.closed:
             self.connection.close()
 
-        logger.debug(
-            f"Disconnected from the database. ({self.CONFIG['database']})"
-        )
+        logger.info(f"Disconnected from database ({self.CONFIG['database']}).")
 
     @log_reraise_fatal_exception
     @log_reraise_non_fatal_exception
@@ -110,7 +106,7 @@ class BaseDatabase:
         self._validate_connection()
 
         self.connection.commit()
-        logger.debug("Committed changes to the database.")
+        logger.info("Committed changes to the database.")
 
     def _validate_connection(self):
         """
@@ -120,7 +116,5 @@ class BaseDatabase:
             DatabaseNotInitialisedException: If the connection or cursor is not established.
         """
         if not self.cursor or not self.connection:
-            logger.error(
-                "Connection not initialised before attempting queries."
-            )
+            logger.error("Connection not initialised before attempting queries.")
             raise DatabaseNotInitialisedException()

@@ -65,7 +65,7 @@ class TransactionalDatabase(BaseDatabase):
         self._validate_connection()
 
         self.cursor.execute("BEGIN")
-        logger.debug(f"Began a new transaction.")
+        logger.info("Began a new transaction.")
 
     @log_reraise_fatal_exception
     @log_reraise_non_fatal_exception
@@ -80,4 +80,4 @@ class TransactionalDatabase(BaseDatabase):
         self._validate_connection()
 
         self.connection.rollback()
-        logger.debug(f"Rolled back the transaction.")
+        logger.info("Rolled back the transaction.")

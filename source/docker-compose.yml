@@ -29,6 +29,8 @@ services:
       dockerfile: docker-images/rescan-producer/Dockerfile
     networks:
       - talos-network
+    environment:
+      - TALOS_COMPONENT_NAME=rescan-producer
     env_file:
       - .env
     depends_on:
@@ -40,6 +42,8 @@ services:
       dockerfile: docker-images/subreddit-rescanner/Dockerfile
     networks:
       - talos-network
+    environment:
+      - TALOS_COMPONENT_NAME=subreddit-rescanner
     env_file:
       - .env
     depends_on:
@@ -51,6 +55,8 @@ services:
       dockerfile: docker-images/post-rescanner/Dockerfile
     networks:
       - talos-network
+    environment:
+      - TALOS_COMPONENT_NAME=post-rescanner
     env_file:
       - .env
     depends_on:

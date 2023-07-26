@@ -1,9 +1,13 @@
 from typing import List, Union, Tuple
 
+from talos.logger import logger
+
+
 class CommentCollector:
     """
     Collects all comments from an API response containing comment data.
     """
+
     def __init__(self, api_response: dict):
         """
         Initialises the CommentCollector.
@@ -12,7 +16,7 @@ class CommentCollector:
             api_response (str): The API response containing comments.
         """
         self.iterator = CommentIterator(api_response)
-    
+
     def collect_comments(self) -> Tuple[List[dict], ...]:
         """
         Iterates over the comments building lists for each type of comment.
@@ -32,13 +36,19 @@ class CommentCollector:
             elif comment["type"] == "continueThread":
                 continue_threads.append(comment)
 
+        logger.debug(
+            f"Collected {len(raw_comments)} rawComments, {len(more_comments)} moreComments, {len(continue_threads)} continueThreads."
+        )
+
         return (raw_comments, more_comments, continue_threads)
+
 
 class CommentIterator:
     """
     Iterates over all comments, including 'moreCommments' or 'continueThreads'
     from an API response.
     """
+
     def __init__(self, api_response: str):
         """
         Initialises the CommentIterator.
@@ -66,7 +76,7 @@ class CommentIterator:
         for type, comments in self.comment_sections.items():
             if comments is None or len(comments.keys()) == 0:
                 continue
-            
+
             first_comment = next(iter(comments.values()))
             first_comment["type"] = type
 
@@ -79,7 +89,7 @@ class CommentIterator:
     def __next__(self) -> dict:
         if not self.stack:
             raise StopIteration
-        
+
         to_return = self.stack.pop()
         next_field = to_return.get("next")
 

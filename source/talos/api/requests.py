@@ -126,9 +126,7 @@ class Requests:
         Returns:
             requests.Response: 
         """
-        logger.debug(
-            f"Sending POST with url={url}..."
-        )
+        logger.debug(f"Sending POST with url={url}...")
 
         return requests.post(
             url=url,
@@ -159,7 +157,7 @@ class Requests:
             TokenNotFound (APINonFatalException): If no token is found, a non-fatal
             exception is raised, signalling a retry of the generation.
         """
-        logger.debug("Attempting to fetch a new token...")
+        logger.info("Attempting to fetch a new token...")
 
         response = self.send(
             url="https://reddit.com",
@@ -168,10 +166,10 @@ class Requests:
 
         match = regex.search(r'"accessToken":"(.*?)"', response.text)
         if match:
-            logger.debug(f"Found token {match.group(1)}.")
+            logger.info(f"Found token {match.group(1)}.")
             return match.group(1)
         else:
-            logger.debug(f"Failed to find token.")
+            logger.info("Failed to find token.")
             raise TokenNotFound()
 
     def _generate_headers(self) -> Dict:

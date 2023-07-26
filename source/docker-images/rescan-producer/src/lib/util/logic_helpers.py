@@ -1,6 +1,7 @@
 from typing import Tuple
 from datetime import datetime, timedelta, timezone
 
+from talos.logger import logger
 
 def is_rescan_required(subscription: Tuple[str]) -> bool:
     """
@@ -25,4 +26,6 @@ def is_rescan_required(subscription: Tuple[str]) -> bool:
     next_scan_time = last_scanned_at.replace(tzinfo=timezone.utc) + \
         timedelta(seconds=time_between_scans)
 
-    return datetime.now(timezone.utc) >= next_scan_time
+    is_required = datetime.now(timezone.utc) >= next_scan_time
+    logger.debug(f"Subreddit {subscription} rescan_required={is_required}.")
+    return is_required

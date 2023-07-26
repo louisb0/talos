@@ -39,7 +39,7 @@ class PostCollector:
             # if still no posts after fetching, we reached the end
             if not self.unprocessed_posts:
                 break
-            
+
             next_post = self.unprocessed_posts.pop(0)
             if any(next_post["id"] in tup for tup in self.stopping_post_ids):
                 break
