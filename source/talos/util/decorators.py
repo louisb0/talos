@@ -1,10 +1,11 @@
 from typing import Tuple, Type, Callable, Any
+import traceback
 
 from tenacity import retry, stop_after_attempt, stop_after_delay, wait_fixed, wait_exponential, retry_if_exception_type
 
 from talos.logger import logger
+from talos.config import Settings
 
-import traceback
 
 def log_and_reraise_exception(to_catch: Tuple[Type[BaseException]], should_raise: Exception, to_exclude: Tuple[Type[BaseException]] = None):
     """
@@ -25,12 +26,15 @@ def log_and_reraise_exception(to_catch: Tuple[Type[BaseException]], should_raise
             except to_catch as ex:
                 if to_exclude and isinstance(ex, to_exclude):
                     raise
-
-                logger.error(f"An error occurred in {func.__name__}(): {str(ex)}", extra={
-                    "json_fields": {
-                        "traceback": traceback.format_exc()
-                    }
-                })
+                
+                if Settings.IS_DEV:
+                    logger.exception(f"An error occurred in {func.__name__}()")
+                else:
+                    logger.error(f"An error occurred in {func.__name__}(): {str(ex)}", extra={
+                        "json_fields": {
+                            "traceback": traceback.format_exc()
+                        }
+                    })
                 raise should_raise() from ex
         return wrapper
 
