@@ -8,7 +8,7 @@ from talos.config import Settings
 from talos.logger import logger
 from talos.api import Requests
 from talos.queuing import RabbitMQ
-from talos.db import ContextDatabase
+from talos.db import ContextDatabase, TransactionalDatabase
 
 from lib.util import CommentCollector, db_helpers, queue_helpers
 
@@ -50,39 +50,40 @@ class PostRescanner(ConsumerComponent):
 
         return response, raw_comments, more_comments, continue_threads
 
-    def handle_base_layer_message(self, post: dict, post_rescan_id: int) -> None:
+    def handle_base_layer_message(self, tdb: TransactionalDatabase, post: dict, post_rescan_id: int) -> None:
         """
         Performs additional processing required for 'base layer' responses,
         i.e. updating the post and marking the rescan started.
 
         Args:
+            tdb (TransactionalDatabase): The current database transaction.
             post (dict): The JSON object representing the updated post.
             post_rescan_id (int): The ID of the post rescan this update is associated with.
         """
-        with ContextDatabase() as cdb:
-            db_helpers.insert_updated_post(
-                db=cdb,
-                post=post,
-                post_rescan_id=post_rescan_id
-            )
-            db_helpers.set_post_rescan_started(
-                db=cdb,
-                post_rescan_id=post_rescan_id
-            )
-            cdb.commit()
+        db_helpers.insert_updated_post(
+            tdb=tdb,
+            post=post,
+            post_rescan_id=post_rescan_id
+        )
+        db_helpers.set_post_rescan_started(
+            tdb=tdb,
+            post_rescan_id=post_rescan_id
+        )
 
-    def process_found_comments(self, raw_comments: dict, more_comments: dict, continue_threads: dict, post_rescan_id: int) -> None:
+    def process_found_comments(self, tdb: TransactionalDatabase, raw_comments: dict, more_comments: dict, continue_threads: dict, post_rescan_id: int) -> None:
         """
         Inserts the raw_comments into the database, and queues subsequent requests
         for nested moreComments and continueThreads.
 
         Args:
+            tdb (TransactionalDatabase): The current database transaction.
             raw_comments (dict): The comments found in the post.
             more_comments (dict): The objects used to fetch moreComments.
             continue_threads (dict): The objects used to fetch continueThreads.
             post_rescan_id (int): The post rescan ID these comments are associated with.
         """
         db_helpers.insert_comments(
+            tdb=tdb,
             comments=raw_comments,
             post_rescan_id=post_rescan_id
         )
@@ -133,20 +134,24 @@ class PostRescanner(ConsumerComponent):
         response, raw_comments, more_comments, continue_threads = self.collect_post_data(
             message)
 
-        if message["type"] == "base":
-            self.handle_base_layer_message(  # base layer contains updated post
-                post=response["posts"][message["post_id"]],
-                post_rescan_id=post_rescan_id
-            )
-        elif message["type"] == "continue":
+        if message["type"] == "continue":
             raw_comments.pop(0)  # duplicate root in continue thread
+        
+        with TransactionalDatabase() as tdb:
+            if message["type"] == "base":
+                self.handle_base_layer_message(  # base layer contains updated post
+                    tdb=tdb,
+                    post=response["posts"][message["post_id"]],
+                    post_rescan_id=post_rescan_id
+                )
 
-        self.process_found_comments(
-            raw_comments,
-            more_comments,
-            continue_threads,
-            post_rescan_id
-        )
+            self.process_found_comments(
+                tdb,
+                raw_comments,
+                more_comments,
+                continue_threads,
+                post_rescan_id,
+            )
 
         logger.info(
             f"Processed {len(raw_comments)} comments, queued a further {len(more_comments) + len(continue_threads)} requests. " +
