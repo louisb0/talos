@@ -25,19 +25,21 @@ def get_last_seen_post_ids(subreddit: str) -> Union[List[Tuple[str]], None]:
     with ContextDatabase() as cdb:
         cdb.execute(
             """
-            WITH latest_rescan AS (
-                SELECT id AS rescan_id
+            WITH latest_rescan_with_posts AS (
+                SELECT subreddit_rescans.id AS rescan_id
                 FROM %s
-                WHERE subreddit = %s
-                ORDER BY ran_at DESC
+                JOIN %s ON subreddit_rescans.id = initial_posts.rescan_id
+                WHERE subreddit_rescans.subreddit = %s
+                GROUP BY subreddit_rescans.id
+                ORDER BY subreddit_rescans.ran_at DESC
                 LIMIT 1
             )
             SELECT initial_posts.id AS post_id
-            FROM latest_rescan
-            JOIN %s ON latest_rescan.rescan_id = initial_posts.rescan_id;
+            FROM latest_rescan_with_posts
+            JOIN initial_posts ON latest_rescan_with_posts.rescan_id = initial_posts.rescan_id;
             """,
-            (AsIs(Settings.SUBREDDIT_RESCAN_TABLE), subreddit, AsIs(
-                Settings.INITIAL_POSTS_TABLE))
+            (AsIs(Settings.SUBREDDIT_RESCAN_TABLE), AsIs(
+                Settings.INITIAL_POSTS_TABLE), subreddit)
         )
 
         return cdb.fetchall()
