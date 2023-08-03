@@ -7,9 +7,10 @@ from util.db import Database
 
 
 class Extractor:
-    def __init__(self, db: Database, past: datetime):
+    def __init__(self, db: Database, past: datetime, subreddit: str):
         self.db = db
         self.past = past
+        self.subreddit = subreddit
 
     def get_dfs(self) -> Tuple[pd.DataFrame, pd.DataFrame]:
         posts = self._get_posts_from_db()
@@ -32,9 +33,19 @@ class Extractor:
                 updated_posts
             ON 
                 post_rescans.id = updated_posts.post_scan_id
+            JOIN 
+                subreddit_rescans
+            ON 
+                initial_posts.rescan_id = subreddit_rescans.id
+            JOIN 
+                subscriptions
+            ON 
+                subreddit_rescans.subreddit = subscriptions.subreddit
             WHERE 
                 updated_posts.scraped_at >= %s
-        """, (self.past, ))
+            AND 
+                subscriptions.subreddit = %s
+        """, (self.past, self.subreddit))
 
         return pd.DataFrame(
             self.db.cursor.fetchall(),
